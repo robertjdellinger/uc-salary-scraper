@@ -1,0 +1,60 @@
+---
+title: "UC Police Salary Analysis"
+author: "Robert J. Dellinger"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set()
+# Load required packages
+library(tidyverse)
+library(janitor)
+library(here)
+library(lubridate)
+```
+
+
+```{r}
+# Load police salary CSV
+police_raw <- read_csv(here("Data", "Raw", "transparent-ca-salaries", "search_results_POLICE.csv")) %>% 
+  clean_names()
+
+# Preview structure
+glimpse(police_raw)
+str(police_raw)
+summary(police_raw)
+```
+
+```{r setup, include=FALSE}
+# Identify relevant columns (assuming standard structure)
+police_clean <- police_raw %>%
+  rename_with(str_replace_all, pattern = "_+", replacement = "_") %>%
+  filter(!is.na(total_pay_benefits)) %>%
+  mutate(across(c(total_pay, total_benefits), parse_number),
+         year = parse_number(year)) %>%
+  mutate(job_title_upper = str_to_upper(job_title),
+         base_title = str_extract(job_title_upper, "POLICE|OFFICER|SERGEANT|LIEUTENANT|CAPTAIN|CHIEF"))
+
+# Quick check of distinct job titles
+unique(police_clean$base_title)
+```
+
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(stringr)
+library(readr)
+
+police_clean <- police_raw %>%
+  filter(!is.na(total_pay_benefits)) %>%
+  mutate(
+    across(where(is.character), ~ str_trim(.x)),  # Trim whitespace in character columns
+    total_pay = base_pay + overtime_pay + other_pay,
+    total_benefits = benefits,
+    year = parse_number(as.character(year)),
+    job_title_upper = str_to_upper(job_title),
+    base_title = str_extract(job_title_upper, "POLICE|OFFICER|SERGEANT|LIEUTENANT|CAPTAIN|CHIEF")
+  )
+```
+

@@ -1,0 +1,103 @@
+---
+title: "UC Salary Scraper"
+author: "Robert J. Dellinger"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Introduction
+
+This script scrapes publicly available salary data for University of California (UC) employees from the Transparent California website (https://transparentcalifornia.com). This platform publishes salary and compensation records for California public employees, including detailed job titles, base pay, benefits, and total compensation for each calendar year. To do this, I used the `chromote` package to scrape the data from the website. The script is designed to be modular, allowing for easy updates and modifications as needed.
+
+## Load Packages & Setup
+
+```{r setup, include=TRUE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(chromote)
+library(rvest)
+library(tidyverse)
+library(here)
+
+options(
+  chromote.chrome_args = c(
+    "--headless=new",
+    "--disable-gpu",
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-extensions",
+    "--blink-settings=imagesEnabled=false",
+    "--disable-background-networking",
+    "--disable-sync",
+    "--metrics-recording-only",
+    "--disable-default-apps",
+    "--mute-audio"
+  )
+)
+
+output_clean <- here("Data", "Processed")
+output_raw <- here("Data", "Raw")
+```
+
+## Setup: Load Functions
+
+```{r load-functions, message=FALSE, warning=FALSE}
+# Load the required packages
+source(here("Scripts", "Functions", "scrape_salary_data.R"))
+source(here("Scripts", "Functions", "clean_salary_data.R"))
+source(here("Scripts", "Functions", "fix_uc_titles.R"))
+```
+
+## Metadata: UC Academic Titles & Codes
+
+The University of California (UC) has a wide range of academic titles, which are essential for understanding the salary data. The academic titles are sourced from the official University of California Office of the President (UCOP) Academic Personnel and Programs document. This document provides a comprehensive list of academic titles, job codes, and descriptions for the 2024-2025 academic year. Additionally, I have included management positions and other titles that are not part of the UCOP document. The academic titles are used to filter and clean the scraped salary data for management positions  (e.g., Chancellor, Dean, etc.). This CSV file is located in the folder structure `Data/Metadata/`. 
+
+```{r load-metadata, message=FALSE, warning=FALSE}
+
+# Load the CSV file using the here package
+academic_titles <- read.csv(
+  here("Data", "Metadata", "uc-academic-titles-sorted-title-name.csv"),
+  stringsAsFactors = FALSE
+) %>% 
+  janitor::clean_names() # Clean column names
+
+# Display the first few rows of the dataset
+head(academic_titles)
+
+```
+
+# University of California Management Salary Data 
+
+This data scraping includes the following positions: The President of the University of California, Chancellor, Chief Executive Officer (CEO), Executive Vice President, Secretary and Chief of Staff to the Regents, and other executive positions from the available years 2011 to 2024. 
+
+```{r executive-leadership, message=FALSE, warning=FALSE}
+## PRESIDENT OF THE UNIV (President of the University)
+president_url <- "https://transparentcalifornia.com/salaries/search/?a=university-of-california&q=President+Of+The+Univ&y="
+president_df <- scrape_salary_data(president_url)
+president_df_clean <- clean_salary_data(president_df) %>% 
+  left_join(academic_titles, by = "title_job_descr")
+print(president_df_clean) 
+
+## CHAN (Chancellor)
+years <- 2011:2024
+
+chanc_list <- lapply(years, function(y) {
+  url <- paste0("https://transparentcalifornia.com/salaries/search/?a=university-of-california&q=CHAN&y=", y)
+  Sys.sleep(2)  # be kind to the server
+  tryCatch({
+    df <- scrape_salary_data(url)
+    clean_salary_data(df) %>%
+      filter(title_job_descr == "CHAN")
+  }, error = function(e) NULL)
+})
+
+chanc_df_all_years <- bind_rows(chanc_list) %>% 
+  left_join(academic_titles, by = "title_job_descr") 
+
+UC_EXECUTIVE_LEADERSHIP_salaries <- bind_rows(
+  president_df_clean,
+  chanc_df_all_years
+)
+
+write.csv(UC_EXECUTIVE_LEADERSHIP_salaries, here("Data", "Processed", "UC_EXECUTIVE_LEADERSHIP_salaries.csv"), row.names = FALSE)
+```
