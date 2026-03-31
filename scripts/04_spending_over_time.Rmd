@@ -1,0 +1,529 @@
+---
+title: "UC Police Spending Over Time"
+author: "Robert J. Dellinger"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+bibliography: "../references/uc_salary_sources.bib"
+link-citations: true
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    df_print: paged
+---
+
+# Title
+
+This section states the title of the standalone police-spending workflow.
+
+UC Police Spending Over Time
+
+# Name
+
+This section identifies the analyst responsible for this workflow.
+
+Robert J. Dellinger
+
+# Date
+
+This section records the run date for the police-spending workflow.
+
+`r format(Sys.Date(), "%B %d, %Y")`
+
+# Objective
+
+This section explains the purpose of the police-spending workflow before any code runs.
+
+The objective is to build a publication-quality, reusable University of California police-spending series that shows how annual and cumulative police salary spending changed from the first available Transparent California UC year through the latest available UC salary year in the public Transparent California database.
+
+# Source
+
+This section names the source used for the police-spending workflow and clarifies the time window.
+
+The workflow uses Transparent California's University of California salary search database [@transparentcalifornia_uc_2026]. As of March 31, 2026, the current UC agency page is 2024 and that page is explicitly labeled "2024 Data Collection in Progress" [@transparentcalifornia_uc_2024_progress_2026]. This script intentionally uses the latest available 2024 UC records, including the in-progress 2024 page, so the series runs through 2024 rather than stopping at 2023.
+
+# Source documentation and information
+
+This section summarizes the source fields, interpretation limits, and why the police cohort is defined the way it is.
+
+Transparent California exposes record-level pay components for each employee, including `regular_pay`, `overtime_pay`, `other_pay`, `total_pay`, `benefits`, and `total_pay_benefits`. Transparent California's FAQ states that these values are annual amounts for the reported year, that some agencies report on a fiscal-year basis and some on a calendar-year basis, that benefit values reflect employer-paid benefit costs rather than take-home cash, and that the data are posted as supplied by reporting agencies. The public search can match names as well as job titles, so the workflow first scrapes the full yearly `POLICE` candidate pool and then keeps only rows whose cleaned job title literally contains `POLICE`. That title filter is used to remove false positives while preserving the police-titled workforce that organizers are usually trying to measure. Because the 2024 UC page is still marked in progress, the newest year in this police series should be treated as the latest available snapshot rather than a frozen final census. In the current UC police series, the 2011 and 2012 rows report zero benefits in aggregate, so the primary long-run series uses `total_pay` as the most consistent salary-spending measure and treats `total_pay_benefits` as a secondary employer-compensation measure. The resulting totals are nominal dollars, not inflation-adjusted dollars, so the time series should be interpreted as administrative spending growth rather than real purchasing-power growth.
+
+# Methods, including equations and conceptual definitions
+
+This section explains the spending definitions and analytic logic before the code executes.
+
+The workflow builds a year-by-year police dataset and then summarizes both annual and cumulative spending. The key measures are:
+
+- `annual_total_pay_y = Σ total_pay_i`
+- `annual_total_pay_benefits_y = Σ total_pay_benefits_i`
+- `cumulative_total_pay_t = Σ annual_total_pay_y` for all years from the first available year through year `t`
+- `cumulative_total_pay_benefits_t = Σ annual_total_pay_benefits_y` for all years from the first available year through year `t`
+- `year_over_year_growth_t = (annual_total_pay_benefits_t / annual_total_pay_benefits_(t-1)) - 1`
+
+The report also tracks the overtime share of police payroll because overtime is often a central organizing and budgeting question:
+
+- `overtime_share_of_total_pay_y = annual_overtime_pay_y / annual_total_pay_y`
+
+# Setup and load packages
+
+This section loads helper functions, packages, and project paths.
+
+```{r setup-and-load-packages}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+utility_path <- if (file.exists("scripts/functions/uc_salary_utils.R")) {
+  "scripts/functions/uc_salary_utils.R"
+} else {
+  "functions/uc_salary_utils.R"
+}
+
+source(utility_path)
+uc_salary_load_packages()
+
+police_search_term <- "POLICE"
+analysis_start_year <- 2011L
+year_status <- uc_salary_get_agency_year_status(agency_slug = "university-of-california")
+analysis_end_year <- year_status$current_page_year[[1]]
+analysis_years <- seq.int(analysis_start_year, analysis_end_year)
+series_stub <- paste0("uc_police_spending_", analysis_start_year, "_", analysis_end_year)
+
+detail_output <- uc_salary_path("data", "processed", paste0(series_stub, "_detail.csv"))
+annual_output <- uc_salary_path("outputs", "tables", paste0(series_stub, "_annual_summary.csv"))
+component_output <- uc_salary_path("outputs", "tables", paste0(series_stub, "_component_summary.csv"))
+role_output <- uc_salary_path("outputs", "tables", paste0(series_stub, "_role_summary.csv"))
+scrape_manifest_output <- uc_salary_path("outputs", "logs", "qa", paste0(series_stub, "_scrape_manifest.csv"))
+qa_output <- uc_salary_path("outputs", "logs", "qa", paste0(series_stub, "_qa_summary.csv"))
+figure_manifest_output <- uc_salary_path("outputs", "logs", "qa", paste0(series_stub, "_figure_manifest.csv"))
+
+uc_salary_ensure_directory(dirname(detail_output))
+uc_salary_ensure_directory(dirname(annual_output))
+uc_salary_ensure_directory(dirname(scrape_manifest_output))
+```
+
+# Validation
+
+This section validates the date cutoff and confirms that the latest-available analysis window is internally consistent before scraping begins.
+
+```{r validation}
+stopifnot(!is.na(analysis_end_year))
+stopifnot(analysis_end_year >= analysis_start_year)
+stopifnot(length(analysis_years) > 0)
+
+validation_summary <- tibble::tibble(
+  validation_check = c(
+    "Current Transparent California UC page year",
+    "Current page marked as in progress",
+    "Latest available year used in this script",
+    "First year used in this script",
+    "Number of years in the police-spending series"
+  ),
+  validation_result = c(
+    year_status$current_page_year[[1]],
+    year_status$data_collection_in_progress[[1]],
+    analysis_end_year,
+    analysis_start_year,
+    length(analysis_years)
+  )
+)
+
+knitr::kable(validation_summary)
+```
+
+# Importing data
+
+This section identifies which yearly police raw extracts already exist locally and which years will be scraped from Transparent California on this run.
+
+```{r importing-data}
+planned_input_manifest <- tibble::tibble(
+  year = analysis_years,
+  raw_file = file.path(
+    uc_salary_path("data", "raw", "transparent_california"),
+    as.character(analysis_years),
+    paste0("tc_", analysis_years, "_police.csv")
+  )
+) %>%
+  dplyr::mutate(raw_file_exists = file.exists(raw_file))
+
+knitr::kable(planned_input_manifest)
+```
+
+# Processing data
+
+This section scrapes or reuses yearly police extracts, filters the analytic police cohort, summarizes annual and cumulative spending, and writes publication-ready graphics and tables.
+
+```{r processing-data}
+yearly_results <- purrr::map(
+  analysis_years,
+  function(year_value) {
+    raw_year_directory <- uc_salary_path("data", "raw", "transparent_california", as.character(year_value))
+    raw_output_path <- file.path(raw_year_directory, paste0("tc_", year_value, "_police.csv"))
+
+    uc_salary_ensure_directory(raw_year_directory)
+
+    # Reuse cached yearly police files when they already exist to keep reruns fast and stable.
+    year_candidate_pool <- if (file.exists(raw_output_path)) {
+      cached_year_extract <- readr::read_csv(raw_output_path, show_col_types = FALSE)
+
+      if (uc_salary_cache_is_current(cached_year_extract)) {
+        cached_year_extract
+      } else {
+        raw_year_extract <- uc_salary_scrape_query(
+          search_term = police_search_term,
+          year = year_value,
+          pause_seconds = 0.20,
+          verbose = TRUE
+        )
+
+        cleaned_year_extract <- uc_salary_clean_raw_extract(raw_year_extract, query_slug = "police")
+        readr::write_csv(cleaned_year_extract, raw_output_path)
+        cleaned_year_extract
+      }
+    } else {
+      raw_year_extract <- uc_salary_scrape_query(
+        search_term = police_search_term,
+        year = year_value,
+        pause_seconds = 0.20,
+        verbose = TRUE
+      )
+
+      cleaned_year_extract <- uc_salary_clean_raw_extract(raw_year_extract, query_slug = "police")
+      readr::write_csv(cleaned_year_extract, raw_output_path)
+      cleaned_year_extract
+    }
+
+    # Keep only job titles that truly belong to the police cohort rather than name-match false positives.
+    analytic_year_data <- year_candidate_pool %>%
+      dplyr::filter(stringr::str_detect(job_title_clean, "\\bPOLICE\\b")) %>%
+      dplyr::mutate(
+        police_role_group = dplyr::case_when(
+          stringr::str_detect(job_title_clean, "CHF|CAPTAIN|LIEUTENANT|SERGEANT SUPV|SERGEANT") ~ "Police leadership and supervision",
+          TRUE ~ "Police officers and other police titles"
+        )
+      )
+
+    manifest_row <- tibble::tibble(
+      year = year_value,
+      source_url = dplyr::first(year_candidate_pool$source_url),
+      expected_total_records = max(year_candidate_pool$source_total_records, na.rm = TRUE),
+      candidate_rows_scraped = nrow(year_candidate_pool),
+      analytic_police_rows = nrow(analytic_year_data),
+      non_police_rows_removed = nrow(year_candidate_pool) - nrow(analytic_year_data),
+      total_pages_reported = max(year_candidate_pool$source_total_pages, na.rm = TRUE),
+      unique_pages_scraped = dplyr::n_distinct(year_candidate_pool$source_page),
+      raw_file = raw_output_path
+    )
+
+    list(data = analytic_year_data, manifest = manifest_row)
+  }
+)
+
+police_detail <- dplyr::bind_rows(purrr::map(yearly_results, "data"))
+scrape_manifest <- dplyr::bind_rows(purrr::map(yearly_results, "manifest"))
+
+annual_spending <- police_detail %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(
+    workers = dplyr::n(),
+    unique_job_titles = dplyr::n_distinct(job_title_clean),
+    total_regular_pay = sum(regular_pay, na.rm = TRUE),
+    total_overtime_pay = sum(overtime_pay, na.rm = TRUE),
+    total_other_pay = sum(other_pay, na.rm = TRUE),
+    total_pay = sum(total_pay, na.rm = TRUE),
+    total_benefits = sum(benefits, na.rm = TRUE),
+    total_pay_benefits = sum(total_pay_benefits, na.rm = TRUE),
+    median_total_pay_benefits = stats::median(total_pay_benefits, na.rm = TRUE),
+    mean_total_pay_benefits = mean(total_pay_benefits, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::arrange(year) %>%
+  dplyr::mutate(
+    overtime_share_of_total_pay = dplyr::if_else(total_pay > 0, total_overtime_pay / total_pay, NA_real_),
+    benefits_share_of_total_comp = dplyr::if_else(total_pay_benefits > 0, total_benefits / total_pay_benefits, NA_real_),
+    annual_change_total_pay_benefits = (total_pay_benefits / dplyr::lag(total_pay_benefits)) - 1,
+    annual_change_total_pay = (total_pay / dplyr::lag(total_pay)) - 1,
+    cumulative_total_pay = cumsum(total_pay),
+    cumulative_total_pay_benefits = cumsum(total_pay_benefits),
+    total_pay_benefits_index_start_year = 100 * total_pay_benefits / dplyr::first(total_pay_benefits),
+    workers_index_start_year = 100 * workers / dplyr::first(workers)
+  )
+
+component_spending <- annual_spending %>%
+  dplyr::select(year, total_regular_pay, total_overtime_pay, total_other_pay, total_benefits) %>%
+  tidyr::pivot_longer(
+    cols = c(total_regular_pay, total_overtime_pay, total_other_pay, total_benefits),
+    names_to = "pay_component",
+    values_to = "annual_amount"
+  ) %>%
+  dplyr::mutate(
+    pay_component = factor(
+      pay_component,
+      levels = c("total_regular_pay", "total_overtime_pay", "total_other_pay", "total_benefits"),
+      labels = c("Regular pay", "Overtime pay", "Other pay", "Benefits")
+    )
+  )
+
+role_spending <- police_detail %>%
+  dplyr::group_by(year, police_role_group) %>%
+  dplyr::summarise(
+    workers = dplyr::n(),
+    total_pay = sum(total_pay, na.rm = TRUE),
+    total_pay_benefits = sum(total_pay_benefits, na.rm = TRUE),
+    median_total_pay_benefits = stats::median(total_pay_benefits, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+years_with_zero_benefits <- annual_spending %>%
+  dplyr::filter(total_benefits == 0) %>%
+  dplyr::pull(year)
+
+starting_total_pay <- dplyr::first(annual_spending$total_pay)
+ending_total_pay <- dplyr::last(annual_spending$total_pay)
+ending_cumulative_pay <- dplyr::last(annual_spending$cumulative_total_pay)
+absolute_increase <- ending_total_pay - starting_total_pay
+percent_increase <- (ending_total_pay / starting_total_pay) - 1
+dollar_formatter <- scales::label_dollar(scale_cut = scales::cut_short_scale())
+
+plot_annual_salary_spending <- annual_spending %>%
+  ggplot2::ggplot(ggplot2::aes(x = year, y = total_pay)) +
+  ggplot2::geom_col(fill = uc_salary_palette[["Police"]], width = 0.72) +
+  ggplot2::geom_text(
+    ggplot2::aes(label = scales::label_dollar(scale = 1e-6, suffix = "M", accuracy = 0.1)(total_pay)),
+    vjust = -0.35,
+    size = 3.0,
+    colour = "#1F2933"
+  ) +
+  ggplot2::scale_x_continuous(breaks = analysis_years) +
+  ggplot2::scale_y_continuous(
+    labels = scales::label_dollar(scale_cut = scales::cut_short_scale()),
+    expand = ggplot2::expansion(mult = c(0, 0.10))
+  ) +
+  ggplot2::labs(
+    title = paste0(
+      "UC police salary spending climbed sharply across the available ",
+      analysis_start_year,
+      "-",
+      analysis_end_year,
+      " window"
+    ),
+    subtitle = paste0(
+      "Annual police salary spending rose by ",
+      dollar_formatter(absolute_increase),
+      " (",
+      scales::label_percent(accuracy = 0.1)(percent_increase),
+      ") from ",
+      analysis_start_year,
+      " to ",
+      analysis_end_year,
+      "."
+    ),
+    x = NULL,
+    y = "Annual total pay",
+    caption = paste0(
+      "Person-level Transparent California nominal total-pay sums. The primary series uses total pay because benefits are zero in ",
+      paste(years_with_zero_benefits, collapse = " and "),
+      ". ",
+      analysis_end_year,
+      " is the latest available UC year, not a finalized census."
+    )
+  ) +
+  uc_salary_theme()
+
+cumulative_spending_long <- annual_spending %>%
+  dplyr::select(year, cumulative_total_pay, cumulative_total_pay_benefits) %>%
+  tidyr::pivot_longer(
+    cols = c(cumulative_total_pay, cumulative_total_pay_benefits),
+    names_to = "measure_type",
+    values_to = "cumulative_amount"
+  ) %>%
+  dplyr::mutate(
+    measure_type = factor(
+      measure_type,
+      levels = c("cumulative_total_pay", "cumulative_total_pay_benefits"),
+      labels = c("Cumulative total pay", "Cumulative total pay and benefits")
+    )
+  )
+
+plot_cumulative_spending <- cumulative_spending_long %>%
+  ggplot2::ggplot(ggplot2::aes(x = year, y = cumulative_amount, colour = measure_type)) +
+  ggplot2::geom_line(linewidth = 1.4) +
+  ggplot2::geom_point(size = 2.8) +
+  ggplot2::scale_x_continuous(breaks = analysis_years) +
+  ggplot2::scale_y_continuous(
+    labels = scales::label_dollar(scale_cut = scales::cut_short_scale()),
+    expand = ggplot2::expansion(mult = c(0.02, 0.10))
+  ) +
+  ggplot2::scale_colour_manual(
+    values = c(
+      "Cumulative total pay" = "#8D99AE",
+      "Cumulative total pay and benefits" = "#8B1E3F"
+    )
+  ) +
+  ggplot2::labs(
+    title = paste0("Cumulative UC police salary spending passed $600 million by ", analysis_end_year),
+    subtitle = paste0(
+      "Cumulative total pay reached ",
+      dollar_formatter(ending_cumulative_pay),
+      " by ",
+      analysis_end_year,
+      "; the higher compensation line adds benefits where Transparent California reports them."
+    ),
+    x = NULL,
+    y = "Cumulative dollars",
+    colour = NULL,
+    caption = paste0(
+      "Person-level Transparent California nominal-dollar cumulative sums. Benefits are zero in ",
+      paste(years_with_zero_benefits, collapse = " and "),
+      ". The ",
+      analysis_end_year,
+      " endpoint is the latest available UC year and may change while 2024 collection remains in progress."
+    )
+  ) +
+  uc_salary_theme()
+
+plot_component_mix <- component_spending %>%
+  ggplot2::ggplot(ggplot2::aes(x = factor(year), y = annual_amount, fill = pay_component)) +
+  ggplot2::geom_col(width = 0.74) +
+  ggplot2::scale_fill_manual(
+    values = c(
+      "Regular pay" = "#3E7CB1",
+      "Overtime pay" = "#D1495B",
+      "Other pay" = "#EDA247",
+      "Benefits" = "#4D9078"
+    )
+  ) +
+  ggplot2::scale_y_continuous(
+    labels = scales::label_dollar(scale_cut = scales::cut_short_scale()),
+    expand = ggplot2::expansion(mult = c(0, 0.04))
+  ) +
+  ggplot2::labs(
+    title = "Overtime materially expands the UC police payroll bill",
+    subtitle = paste0(
+      "Stacked nominal annual totals show how regular pay, overtime, other pay, and reported benefits combined from ",
+      analysis_start_year,
+      " through ",
+      analysis_end_year,
+      "."
+    ),
+    x = NULL,
+    y = "Annual dollars",
+    fill = NULL,
+    caption = paste0(
+      "Person-level Transparent California annual sums in nominal dollars for UC job titles containing POLICE. Reported benefits are zero in ",
+      paste(years_with_zero_benefits, collapse = " and "),
+      "."
+    )
+  ) +
+  uc_salary_theme()
+
+figure_manifest <- tibble::tibble(
+  figure = c(
+    "Annual police salary spending",
+    "Cumulative police spending",
+    "Annual police pay-component mix"
+  ),
+  output_path = c(
+    uc_salary_save_plot(plot_annual_salary_spending, paste0(series_stub, "_annual_salary_spending.png"), width = 12.5, height = 8),
+    uc_salary_save_plot(plot_cumulative_spending, paste0(series_stub, "_cumulative_salary_spending.png"), width = 12.5, height = 8),
+    uc_salary_save_plot(plot_component_mix, paste0(series_stub, "_annual_component_mix.png"))
+  )
+)
+
+readr::write_csv(police_detail, detail_output)
+readr::write_csv(annual_spending, annual_output)
+readr::write_csv(component_spending, component_output)
+readr::write_csv(role_spending, role_output)
+readr::write_csv(scrape_manifest, scrape_manifest_output)
+readr::write_csv(figure_manifest, figure_manifest_output)
+```
+
+# Inspect data
+
+This section reviews the annual totals and role-group summaries before the final QA checks.
+
+```{r inspect-data}
+annual_spending %>%
+  dplyr::select(
+    year,
+    workers,
+    total_pay,
+    total_pay_benefits,
+    annual_change_total_pay,
+    cumulative_total_pay,
+    overtime_share_of_total_pay
+  ) %>%
+  knitr::kable()
+
+role_spending %>%
+  dplyr::arrange(year, police_role_group) %>%
+  knitr::kable()
+```
+
+# QA
+
+This section checks scrape completeness, annual coverage, and whether the expected output files were written successfully.
+
+```{r qa}
+qa_summary <- tibble::tibble(
+  qa_metric = c(
+    "Years analyzed",
+    "Years with matching expected and observed candidate rows",
+    "Total police analytic rows across all years",
+    "Years represented in annual summary",
+    "Rows removed by the POLICE title filter",
+    "Years with zero reported benefits totals",
+    "Figures written",
+    "Latest available year used"
+  ),
+  qa_value = c(
+    length(analysis_years),
+    sum(scrape_manifest$expected_total_records == scrape_manifest$candidate_rows_scraped, na.rm = TRUE),
+    nrow(police_detail),
+    nrow(annual_spending),
+    sum(scrape_manifest$non_police_rows_removed, na.rm = TRUE),
+    length(years_with_zero_benefits),
+    nrow(figure_manifest),
+    analysis_end_year
+  )
+)
+
+readr::write_csv(qa_summary, qa_output)
+
+qa_summary %>%
+  knitr::kable()
+```
+
+# Export clean data
+
+This section lists the processed datasets, tables, QA logs, and figures produced by the police-spending workflow.
+
+```{r export-clean-data}
+export_manifest <- dplyr::bind_rows(
+  tibble::tibble(
+    artifact = c(
+      "Police detail dataset",
+      "Annual police spending summary",
+      "Annual police component summary",
+      "Annual police role-group summary",
+      "Police scrape manifest",
+      "Police QA summary",
+      "Police figure manifest"
+    ),
+    output_path = c(
+      detail_output,
+      annual_output,
+      component_output,
+      role_output,
+      scrape_manifest_output,
+      qa_output,
+      figure_manifest_output
+    )
+  ),
+  figure_manifest %>%
+    dplyr::rename(artifact = figure)
+)
+
+knitr::kable(export_manifest)
+```
+
+# Works Cited
+
+This section is reserved for the bibliography generated from the report citations.

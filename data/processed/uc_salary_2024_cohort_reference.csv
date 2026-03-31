@@ -1,0 +1,5 @@
+analysis_year,priority,query_slug,search_term,analysis_cohort,cohort_group,cohort_family,include_regex,exclude_regex,rationale
+2024,10,police,POLICE,Police employees,Police,Actual Transparent California cohort,\bPOLICE\b,NA,Use the Transparent California `POLICE` candidate pool but keep only rows whose job title actually contains a police title to remove false positives caused by name matches.
+2024,20,librarian,LIBRARIAN,Librarians,Library workers,Actual Transparent California cohort,LIBRARIAN,NA,Library titles remain in the actual-pay scrape because the 2024 results are still small enough to capture completely and provide an academic-support worker benchmark.
+2024,30,uc_president,PRESIDENT OF THE UNIV,UC president,Executive leadership,Actual Transparent California cohort,^PRESIDENT OF THE UNIV$,NA,The UC president is the clearest top-executive comparison point for worker-pay analysis.
+2024,40,chancellor,CHAN,Chancellors,Executive leadership,Actual Transparent California cohort,^CHAN$|^CHANCELLOR$,NA,"The `CHAN` query is broad, so the analytic cohort keeps only exact chancellor titles to avoid pulling in assistant-to-chancellor and vice-chancellor rows."

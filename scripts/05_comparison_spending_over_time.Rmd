@@ -1,0 +1,646 @@
+---
+title: "UC Police and Librarian Payroll Comparison Over Time"
+author: "Robert J. Dellinger"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+bibliography: "../references/uc_salary_sources.bib"
+link-citations: true
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    df_print: paged
+---
+
+# Title
+
+This section states the title of the standalone police-versus-librarian payroll workflow.
+
+UC Police and Librarian Payroll Comparison Over Time
+
+# Name
+
+This section identifies the analyst responsible for this workflow.
+
+Robert J. Dellinger
+
+# Date
+
+This section records the run date for the workflow.
+
+`r format(Sys.Date(), "%B %d, %Y")`
+
+# Objective
+
+This section explains the purpose of the workflow before any code runs.
+
+The objective is to build a publication-quality, reusable University of California over-time comparison between police payroll and broad librarian-series payroll using reconstructed annual payroll estimates from the public Transparent California job-title summary pages and the repository's documented librarian title crosswalk.
+
+# Source
+
+This section names the source materials used in the workflow.
+
+The workflow uses Transparent California's annual University of California job-title summary pages for `2011-2024` [@transparentcalifornia_uc_2026; @transparentcalifornia_uc_job_title_summary_2026], the latest-available 2024 University of California agency page that is still marked in progress [@transparentcalifornia_uc_2024_progress_2026], the exact police person-level series produced elsewhere in this repository for validation [@transparentcalifornia_uc_2026], and the repository's cleaned 2024 librarian title crosswalk to audit current librarian title strings against the title matches already validated in the person-level workflow.
+
+# Source documentation and information
+
+This section summarizes the source fields, cohort-definition rules, and interpretation limits that matter for the workflow.
+
+Transparent California's job-title summary pages report `Count`, `Avg Regular pay`, `Avg Overtime pay`, `Avg Other pay`, `Avg Total pay`, `Avg Benefits`, and `Avg Total pay & benefits` for each title-year combination [@transparentcalifornia_uc_job_title_summary_2026]. Those pages also note that the averages are designed to capture full-year employees and exclude part-time, seasonal, and partial-year workers [@transparentcalifornia_uc_job_title_summary_2026]. Because of that note, this script treats title-summary payroll totals as reconstructed annual payroll estimates rather than exact audited payroll sums. The librarian side of the comparison is defined as a broad librarian-series cohort built from observed title-summary strings that contain `LIBRARIAN`, including university, law, associate, assistant, career, potential-career, non-represented, temporary, and visiting librarian titles. The repository's 2024 librarian crosswalk is used only as an audit aid for current title matching, while the actual over-time inclusion rule is the explicit title crosswalk written by this script. The resulting over-time figures are nominal dollars, not inflation-adjusted dollars, and the newest year should still be read as the latest available 2024 snapshot rather than a finalized University of California census [@transparentcalifornia_uc_2024_progress_2026].
+
+# Methods, including equations and conceptual definitions
+
+This section explains the core estimation and validation logic before the code executes.
+
+The workflow treats each year as a separate repeated cross-section rather than averaging workers across years. For each title `t` in year `y`, the title-summary pages provide a worker count and an average compensation value. The workflow therefore constructs estimated annual payroll by title and then sums those title-level estimates within each cohort:
+
+- `estimated_title_total_pay_(t,y) = count_(t,y) * avg_total_pay_(t,y)`
+- `estimated_group_total_pay_y = Σ estimated_title_total_pay_(t,y)` for all titles `t` in the cohort
+- `police_share_of_librarian_payroll_y = estimated_police_total_pay_y / estimated_librarian_total_pay_y`
+- `librarian_payroll_multiple_of_police_y = estimated_librarian_total_pay_y / estimated_police_total_pay_y`
+- `average_librarian_payroll_equivalents_y = estimated_police_total_pay_y / weighted_mean_librarian_total_pay_y`
+
+Because the title-summary pages are not person-level payroll extracts, the workflow validates the police title-summary estimates against the exact police person-level totals from the repository's police series. Those validation gaps are reported directly and the librarian totals remain labeled as reconstructed annual payroll estimates rather than exact payroll totals.
+
+# Setup and load packages
+
+This section loads helper functions, packages, and project paths.
+
+```{r setup-and-load-packages}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+utility_path <- if (file.exists("scripts/functions/uc_salary_utils.R")) {
+  "scripts/functions/uc_salary_utils.R"
+} else {
+  "functions/uc_salary_utils.R"
+}
+
+source(utility_path)
+uc_salary_load_packages()
+
+analysis_start_year <- 2011L
+year_status <- uc_salary_get_agency_year_status(agency_slug = "university-of-california")
+analysis_end_year <- year_status$current_page_year[[1]]
+analysis_years <- seq.int(analysis_start_year, analysis_end_year)
+series_stub <- paste0("uc_police_vs_librarian_", analysis_start_year, "_", analysis_end_year)
+
+police_detail_input <- uc_salary_path(
+  "data",
+  "processed",
+  paste0("uc_police_spending_", analysis_start_year, "_", analysis_end_year, "_detail.csv")
+)
+librarian_crosswalk_input <- uc_salary_path("data", "processed", "uc_salary_2024_title_crosswalk.csv")
+
+title_summary_detail_output <- uc_salary_path("data", "processed", paste0(series_stub, "_title_summary_detail.csv"))
+title_group_output <- uc_salary_path("outputs", "tables", paste0(series_stub, "_title_group_reference.csv"))
+annual_output <- uc_salary_path("outputs", "tables", paste0(series_stub, "_annual_summary.csv"))
+comparison_output <- uc_salary_path("outputs", "tables", paste0(series_stub, "_comparison_summary.csv"))
+validation_output <- uc_salary_path("outputs", "tables", paste0(series_stub, "_police_validation.csv"))
+scrape_manifest_output <- uc_salary_path("outputs", "logs", "qa", paste0(series_stub, "_scrape_manifest.csv"))
+qa_output <- uc_salary_path("outputs", "logs", "qa", paste0(series_stub, "_qa_summary.csv"))
+figure_manifest_output <- uc_salary_path("outputs", "logs", "qa", paste0(series_stub, "_figure_manifest.csv"))
+
+uc_salary_ensure_directory(dirname(title_summary_detail_output))
+uc_salary_ensure_directory(dirname(title_group_output))
+uc_salary_ensure_directory(dirname(scrape_manifest_output))
+```
+
+# Validation
+
+This section validates that the required inputs and the latest-available time window are in place before scraping begins.
+
+```{r validation}
+stopifnot(!is.na(analysis_end_year))
+stopifnot(analysis_end_year >= analysis_start_year)
+stopifnot(length(analysis_years) > 0)
+stopifnot(file.exists(police_detail_input))
+stopifnot(file.exists(librarian_crosswalk_input))
+
+librarian_crosswalk <- readr::read_csv(librarian_crosswalk_input, show_col_types = FALSE)
+current_librarian_title_reference <- librarian_crosswalk %>%
+  dplyr::filter(analysis_cohort == "Librarians") %>%
+  dplyr::mutate(
+    current_2024_title_job_code = dplyr::na_if(uc_title_job_code, "NA"),
+    current_2024_cto_name = dplyr::na_if(uc_cto_name, "NA"),
+    current_2024_title_reference_match = title_reference_match %in% c(TRUE, "TRUE")
+  ) %>%
+  dplyr::select(
+    job_title_clean,
+    current_2024_title_job_code,
+    current_2024_cto_name,
+    current_2024_title_reference_match
+  ) %>%
+  dplyr::distinct(job_title_clean, .keep_all = TRUE)
+
+stopifnot(nrow(current_librarian_title_reference) > 0)
+
+validation_summary <- tibble::tibble(
+  validation_check = c(
+    "Current Transparent California UC page year",
+    "Current page marked as in progress",
+    "Latest available year used in this script",
+    "First year used in this script",
+    "Number of years in the comparison series",
+    "Exact police detail file available",
+    "Current librarian crosswalk file available",
+    "Current librarian crosswalk rows available"
+  ),
+  validation_result = c(
+    year_status$current_page_year[[1]],
+    year_status$data_collection_in_progress[[1]],
+    analysis_end_year,
+    analysis_start_year,
+    length(analysis_years),
+    file.exists(police_detail_input),
+    file.exists(librarian_crosswalk_input),
+    nrow(current_librarian_title_reference)
+  )
+)
+
+knitr::kable(validation_summary)
+```
+
+# Importing data
+
+This section documents the planned yearly title-summary inputs and the broad librarian-series rule that defines the comparison cohort.
+
+```{r importing-data}
+planned_input_manifest <- tibble::tibble(
+  year = analysis_years,
+  raw_file = file.path(
+    uc_salary_path("data", "raw", "transparent_california"),
+    as.character(analysis_years),
+    paste0("tc_", analysis_years, "_job_title_summary.csv")
+  )
+) %>%
+  dplyr::mutate(raw_file_exists = file.exists(raw_file))
+
+librarian_series_rules <- tibble::tibble(
+  analysis_cohort = "Librarians",
+  include_regex = "LIBRARIAN",
+  exclude_regex = NA_character_,
+  rule_note = paste(
+    "The librarian comparison uses a broad librarian-series payroll cohort built from every observed UC title-summary",
+    "string that contains `LIBRARIAN`, including university, law, associate, assistant, career, potential-career,",
+    "non-represented, temporary, and visiting librarian titles."
+  )
+)
+
+planned_input_manifest %>%
+  knitr::kable()
+
+librarian_series_rules %>%
+  knitr::kable()
+
+current_librarian_title_reference %>%
+  dplyr::count(current_2024_cto_name, current_2024_title_reference_match, sort = TRUE) %>%
+  knitr::kable()
+```
+
+# Processing data
+
+This section scrapes or reuses yearly title-summary pages, defines the police and librarian cohorts, validates the title-summary police estimates against the exact police series, and writes publication-ready figures and tables.
+
+```{r processing-data}
+yearly_title_summary_results <- purrr::map(
+  analysis_years,
+  function(year_value) {
+    raw_year_directory <- uc_salary_path("data", "raw", "transparent_california", as.character(year_value))
+    raw_output_path <- file.path(raw_year_directory, paste0("tc_", year_value, "_job_title_summary.csv"))
+
+    uc_salary_ensure_directory(raw_year_directory)
+
+    # Reuse cached yearly title-summary extracts when they already exist.
+    year_title_summary <- if (file.exists(raw_output_path)) {
+      cached_year_summary <- readr::read_csv(raw_output_path, show_col_types = FALSE)
+
+      if (uc_salary_cache_is_current(cached_year_summary)) {
+        cached_year_summary
+      } else {
+        raw_year_summary <- uc_salary_scrape_job_title_summary(
+          year = year_value,
+          pause_seconds = 0.10,
+          verbose = TRUE
+        )
+
+        readr::write_csv(raw_year_summary, raw_output_path)
+        raw_year_summary
+      }
+    } else {
+      raw_year_summary <- uc_salary_scrape_job_title_summary(
+        year = year_value,
+        pause_seconds = 0.10,
+        verbose = TRUE
+      )
+
+      readr::write_csv(raw_year_summary, raw_output_path)
+      raw_year_summary
+    }
+
+    manifest_row <- tibble::tibble(
+      year = year_value,
+      raw_file = raw_output_path,
+      title_rows_scraped = nrow(year_title_summary),
+      unique_titles_scraped = dplyr::n_distinct(year_title_summary$job_title_clean),
+      total_pages_reported = max(year_title_summary$source_total_pages, na.rm = TRUE),
+      unique_pages_scraped = dplyr::n_distinct(year_title_summary$source_page),
+      source_note = dplyr::first(year_title_summary$source_note)
+    )
+
+    list(data = year_title_summary, manifest = manifest_row)
+  }
+)
+
+title_summary_detail <- dplyr::bind_rows(purrr::map(yearly_title_summary_results, "data"))
+scrape_manifest <- dplyr::bind_rows(purrr::map(yearly_title_summary_results, "manifest"))
+
+librarian_title_candidates <- title_summary_detail %>%
+  dplyr::filter(stringr::str_detect(job_title_clean, "LIBRARIAN")) %>%
+  dplyr::group_by(job_title, job_title_clean) %>%
+  dplyr::summarise(
+    first_year = min(year, na.rm = TRUE),
+    last_year = max(year, na.rm = TRUE),
+    max_worker_count = max(count, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::mutate(
+    analysis_cohort = "Librarians",
+    included_in_comparison = TRUE,
+    comparison_note = dplyr::case_when(
+      stringr::str_detect(job_title_clean, "UNIV LIBRARIAN|UNIVERSITY LIBRARIAN") ~ "Included as part of the broad librarian series; this title captures university-librarian leadership positions within library payroll.",
+      stringr::str_detect(job_title_clean, "LAW LIBRARIAN") ~ "Included as part of the broad librarian series; law-library titles remain within the public-facing librarian payroll comparison.",
+      stringr::str_detect(job_title_clean, "TEMP|VIS") ~ "Included as part of the broad librarian series because the title-summary pages already aim to capture full-year workers, but this title should not be read as a permanent appointment count.",
+      TRUE ~ "Included as part of the broad librarian series in the police-versus-librarian comparison."
+    )
+  ) %>%
+  dplyr::left_join(
+    current_librarian_title_reference,
+    by = "job_title_clean"
+  )
+
+included_librarian_titles <- librarian_title_candidates %>%
+  dplyr::filter(included_in_comparison, !is.na(analysis_cohort))
+
+comparison_title_detail <- title_summary_detail %>%
+  dplyr::left_join(
+    included_librarian_titles %>%
+      dplyr::select(
+        job_title_clean,
+        analysis_cohort,
+        current_2024_title_job_code,
+        current_2024_cto_name,
+        current_2024_title_reference_match
+      ),
+    by = "job_title_clean"
+  ) %>%
+  dplyr::mutate(
+    analysis_cohort = dplyr::case_when(
+      stringr::str_detect(job_title_clean, "\\bPOLICE\\b") ~ "Police",
+      TRUE ~ analysis_cohort
+    ),
+    cohort_group = dplyr::case_when(
+      analysis_cohort == "Police" ~ "Police",
+      analysis_cohort == "Librarians" ~ "Librarians",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  dplyr::filter(!is.na(analysis_cohort))
+
+annual_summary <- comparison_title_detail %>%
+  dplyr::group_by(year, cohort_group, analysis_cohort) %>%
+  dplyr::summarise(
+    title_rows = dplyr::n(),
+    workers = sum(count, na.rm = TRUE),
+    estimated_regular_pay = sum(estimated_regular_pay, na.rm = TRUE),
+    estimated_overtime_pay = sum(estimated_overtime_pay, na.rm = TRUE),
+    estimated_other_pay = sum(estimated_other_pay, na.rm = TRUE),
+    estimated_total_pay = sum(estimated_total_pay, na.rm = TRUE),
+    estimated_benefits = sum(estimated_benefits, na.rm = TRUE),
+    estimated_total_pay_benefits = sum(estimated_total_pay_benefits, na.rm = TRUE),
+    weighted_avg_regular_pay = stats::weighted.mean(avg_regular_pay, w = count, na.rm = TRUE),
+    weighted_avg_total_pay = stats::weighted.mean(avg_total_pay, w = count, na.rm = TRUE),
+    weighted_avg_total_pay_benefits = stats::weighted.mean(avg_total_pay_benefits, w = count, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::arrange(year, cohort_group, analysis_cohort)
+
+police_exact_annual <- readr::read_csv(police_detail_input, show_col_types = FALSE) %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(
+    exact_police_workers = dplyr::n(),
+    exact_police_total_pay = sum(total_pay, na.rm = TRUE),
+    exact_police_total_pay_benefits = sum(total_pay_benefits, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+police_validation <- annual_summary %>%
+  dplyr::filter(analysis_cohort == "Police") %>%
+  dplyr::transmute(
+    year,
+    estimated_police_workers = workers,
+    estimated_police_total_pay = estimated_total_pay,
+    estimated_police_total_pay_benefits = estimated_total_pay_benefits
+  ) %>%
+  dplyr::left_join(police_exact_annual, by = "year") %>%
+  dplyr::mutate(
+    worker_gap = estimated_police_workers - exact_police_workers,
+    worker_gap_pct = dplyr::if_else(exact_police_workers > 0, estimated_police_workers / exact_police_workers - 1, NA_real_),
+    total_pay_gap = estimated_police_total_pay - exact_police_total_pay,
+    total_pay_gap_pct = dplyr::if_else(exact_police_total_pay > 0, estimated_police_total_pay / exact_police_total_pay - 1, NA_real_),
+    total_pay_benefits_gap = estimated_police_total_pay_benefits - exact_police_total_pay_benefits,
+    total_pay_benefits_gap_pct = dplyr::if_else(
+      exact_police_total_pay_benefits > 0,
+      estimated_police_total_pay_benefits / exact_police_total_pay_benefits - 1,
+      NA_real_
+    )
+  )
+
+comparison_summary <- annual_summary %>%
+  dplyr::filter(analysis_cohort %in% c("Police", "Librarians")) %>%
+  dplyr::select(year, analysis_cohort, workers, estimated_total_pay, estimated_total_pay_benefits, weighted_avg_total_pay) %>%
+  tidyr::pivot_wider(
+    names_from = analysis_cohort,
+    values_from = c(workers, estimated_total_pay, estimated_total_pay_benefits, weighted_avg_total_pay),
+    names_sep = "__"
+  ) %>%
+  dplyr::arrange(year) %>%
+  dplyr::mutate(
+    police_share_of_librarian_payroll = `estimated_total_pay__Police` / `estimated_total_pay__Librarians`,
+    librarian_payroll_multiple_of_police = `estimated_total_pay__Librarians` / `estimated_total_pay__Police`,
+    average_librarian_payroll_equivalents = `estimated_total_pay__Police` / `weighted_avg_total_pay__Librarians`,
+    cumulative_police_total_pay = cumsum(`estimated_total_pay__Police`),
+    cumulative_librarian_total_pay = cumsum(`estimated_total_pay__Librarians`)
+  )
+
+readr::write_csv(title_summary_detail, title_summary_detail_output)
+readr::write_csv(librarian_title_candidates, title_group_output)
+readr::write_csv(annual_summary, annual_output)
+readr::write_csv(comparison_summary, comparison_output)
+readr::write_csv(police_validation, validation_output)
+readr::write_csv(scrape_manifest, scrape_manifest_output)
+
+payroll_colour_map <- c(
+  "Police" = "#3A506B",
+  "Librarians" = "#8B1E3F"
+)
+
+share_colour_map <- c(
+  "Police as share of librarian payroll" = "#8B1E3F"
+)
+
+equivalent_colour_map <- c(
+  "Average librarian payrolls" = "#D1495B"
+)
+
+start_share_label <- scales::label_percent(accuracy = 1)(
+  comparison_summary$police_share_of_librarian_payroll[comparison_summary$year == analysis_start_year][[1]]
+)
+end_share_label <- scales::label_percent(accuracy = 1)(
+  comparison_summary$police_share_of_librarian_payroll[comparison_summary$year == analysis_end_year][[1]]
+)
+min_share_label <- scales::label_percent(accuracy = 1)(min(comparison_summary$police_share_of_librarian_payroll, na.rm = TRUE))
+max_share_label <- scales::label_percent(accuracy = 1)(max(comparison_summary$police_share_of_librarian_payroll, na.rm = TRUE))
+
+payroll_comparison_plot_data <- comparison_summary %>%
+  dplyr::transmute(
+    year,
+    Police = `estimated_total_pay__Police`,
+    Librarians = `estimated_total_pay__Librarians`
+  ) %>%
+  tidyr::pivot_longer(
+    cols = c(Police, Librarians),
+    names_to = "comparison_group",
+    values_to = "estimated_total_pay"
+  )
+
+share_plot_data <- comparison_summary %>%
+  dplyr::transmute(
+    year,
+    `Police as share of librarian payroll` = police_share_of_librarian_payroll
+  ) %>%
+  tidyr::pivot_longer(
+    cols = c(`Police as share of librarian payroll`),
+    names_to = "share_measure",
+    values_to = "share_value"
+  )
+
+equivalent_plot_data <- comparison_summary %>%
+  dplyr::transmute(
+    year,
+    `Average librarian payrolls` = average_librarian_payroll_equivalents
+  ) %>%
+  tidyr::pivot_longer(
+    cols = c(`Average librarian payrolls`),
+    names_to = "equivalent_measure",
+    values_to = "equivalent_value"
+  )
+
+plot_police_vs_librarian_payroll <- ggplot2::ggplot(
+  payroll_comparison_plot_data,
+  ggplot2::aes(x = year, y = estimated_total_pay, colour = comparison_group)
+) +
+  ggplot2::geom_line(linewidth = 1.3) +
+  ggplot2::geom_point(size = 2.6) +
+  ggplot2::geom_text(
+    data = payroll_comparison_plot_data %>% dplyr::filter(year == analysis_end_year),
+    ggplot2::aes(
+      label = paste0(comparison_group, ": ", scales::label_dollar(scale = 1e-6, suffix = "M", accuracy = 0.1)(estimated_total_pay))
+    ),
+    hjust = 0,
+    nudge_x = 0.25,
+    size = 3.2,
+    show.legend = FALSE
+  ) +
+  ggplot2::scale_colour_manual(values = payroll_colour_map) +
+  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.14))) +
+  ggplot2::scale_y_continuous(
+    labels = scales::label_dollar(scale_cut = scales::cut_short_scale()),
+    expand = ggplot2::expansion(mult = c(0.02, 0.08))
+  ) +
+  ggplot2::labs(
+    title = paste0(
+      "Estimated librarian payroll stayed above estimated police payroll, ",
+      analysis_start_year,
+      "-",
+      analysis_end_year
+    ),
+    subtitle = "Nominal annual totals use reconstructed Transparent California title-summary payroll estimates for broad police and librarian title-series cohorts.",
+    x = NULL,
+    y = "Estimated annual total pay",
+    colour = NULL,
+    caption = "Nominal annual payroll estimates reconstructed from Transparent California title counts × annual averages, not exact person-level payroll sums."
+  ) +
+  uc_salary_theme() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+
+plot_police_payroll_share <- ggplot2::ggplot(
+  share_plot_data,
+  ggplot2::aes(x = year, y = share_value, colour = share_measure)
+) +
+  ggplot2::geom_line(linewidth = 1.3) +
+  ggplot2::geom_point(size = 2.4) +
+  ggplot2::geom_text(
+    data = share_plot_data %>% dplyr::filter(year == analysis_end_year),
+    ggplot2::aes(label = scales::label_percent(accuracy = 0.1)(share_value)),
+    hjust = 0,
+    nudge_x = 0.25,
+    size = 3.2,
+    show.legend = FALSE
+  ) +
+  ggplot2::scale_colour_manual(values = share_colour_map) +
+  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.14))) +
+  ggplot2::scale_y_continuous(
+    labels = scales::label_percent(accuracy = 1),
+    expand = ggplot2::expansion(mult = c(0, 0.10))
+  ) +
+  ggplot2::labs(
+    title = paste0(
+      "Estimated police payroll stayed below estimated librarian payroll, ",
+      analysis_start_year,
+      "-",
+      analysis_end_year
+    ),
+    subtitle = glue::glue("The police-to-librarian payroll ratio ranged from about {min_share_label} to {max_share_label} and ended at {end_share_label} in {analysis_end_year}."),
+    x = NULL,
+    y = "Police payroll share",
+    colour = NULL,
+    caption = "Shares use nominal annual title-summary payroll estimates; police totals are also cross-checked against the exact person-level police series."
+  ) +
+  uc_salary_theme() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+
+plot_librarian_equivalent_payrolls <- ggplot2::ggplot(
+  equivalent_plot_data,
+  ggplot2::aes(x = year, y = equivalent_value, colour = equivalent_measure)
+) +
+  ggplot2::geom_line(linewidth = 1.3) +
+  ggplot2::geom_point(size = 2.4) +
+  ggplot2::geom_text(
+    data = equivalent_plot_data %>% dplyr::filter(year == analysis_end_year),
+    ggplot2::aes(label = scales::number(equivalent_value, accuracy = 1)),
+    hjust = 0,
+    nudge_x = 0.25,
+    size = 3.2,
+    show.legend = FALSE
+  ) +
+  ggplot2::scale_colour_manual(values = equivalent_colour_map) +
+  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.14))) +
+  ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.10))) +
+  ggplot2::labs(
+    title = paste0(
+      "Estimated annual police payroll equaled hundreds of\naverage librarian payrolls, ",
+      analysis_start_year,
+      "-",
+      analysis_end_year
+    ),
+    subtitle = "Equivalent payroll counts divide annual police estimated total pay by same-year weighted average librarian title-summary total pay.",
+    x = NULL,
+    y = "Equivalent same-year average payrolls",
+    colour = NULL,
+    caption = "Equivalent counts use nominal annual title-summary payroll estimates and do not represent authorized librarian FTEs or hiring plans."
+  ) +
+  uc_salary_theme() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+
+figure_manifest <- tibble::tibble(
+  figure = c(
+    "Estimated annual police versus librarian payroll",
+    "Police payroll share of librarian payroll",
+    "Librarian payroll-equivalent counts for police payroll"
+  ),
+  output_path = c(
+    uc_salary_save_plot(plot_police_vs_librarian_payroll, paste0(series_stub, "_annual_estimated_payroll.png")),
+    uc_salary_save_plot(plot_police_payroll_share, paste0(series_stub, "_payroll_share.png")),
+    uc_salary_save_plot(plot_librarian_equivalent_payrolls, paste0(series_stub, "_librarian_equivalent_payrolls.png"))
+  )
+)
+
+readr::write_csv(figure_manifest, figure_manifest_output)
+```
+
+# Inspect data
+
+This section reviews the finished annual comparison tables and the police-validation results before the report concludes.
+
+```{r inspect-data}
+annual_summary %>%
+  dplyr::filter(analysis_cohort %in% c("Police", "Librarians")) %>%
+  dplyr::arrange(year, analysis_cohort) %>%
+  knitr::kable()
+
+police_validation %>%
+  dplyr::select(year, estimated_police_total_pay, exact_police_total_pay, total_pay_gap_pct) %>%
+  knitr::kable()
+```
+
+# QA
+
+This section records the main quality checks for title coverage, validation gaps, and figure creation.
+
+```{r qa}
+qa_summary <- tibble::tibble(
+  qa_metric = c(
+    "Years analyzed",
+    "Title-summary rows in comparison detail",
+    "Police title rows included",
+    "Included librarian observed titles",
+    "Included librarian titles with current 2024 crosswalk match",
+    "Maximum absolute police total-pay validation gap",
+    "Mean absolute police total-pay validation gap",
+    "Figures written"
+  ),
+  qa_value = c(
+    length(analysis_years),
+    nrow(comparison_title_detail),
+    dplyr::n_distinct(comparison_title_detail$job_title_clean[comparison_title_detail$analysis_cohort == "Police"]),
+    nrow(included_librarian_titles),
+    sum(included_librarian_titles$current_2024_title_reference_match, na.rm = TRUE),
+    max(abs(police_validation$total_pay_gap_pct), na.rm = TRUE),
+    mean(abs(police_validation$total_pay_gap_pct), na.rm = TRUE),
+    nrow(figure_manifest)
+  )
+)
+
+readr::write_csv(qa_summary, qa_output)
+
+qa_summary %>%
+  knitr::kable()
+```
+
+# Export clean data
+
+This section lists the tables, logs, and figures written by the workflow.
+
+```{r export-clean-data}
+export_manifest <- dplyr::bind_rows(
+  tibble::tibble(
+    artifact = c(
+      "Processed title-summary detail",
+      "Librarian title-group reference",
+      "Annual comparison summary",
+      "Police-versus-librarian comparison summary",
+      "Police validation table",
+      "Scrape manifest",
+      "Figure manifest",
+      "QA summary"
+    ),
+    output_path = c(
+      title_summary_detail_output,
+      title_group_output,
+      annual_output,
+      comparison_output,
+      validation_output,
+      scrape_manifest_output,
+      figure_manifest_output,
+      qa_output
+    )
+  ),
+  figure_manifest %>%
+    dplyr::rename(artifact = figure)
+)
+
+knitr::kable(export_manifest)
+```
+
+# Works Cited
+
+This section is reserved for the bibliography generated from the report citations.

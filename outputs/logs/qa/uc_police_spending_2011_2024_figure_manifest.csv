@@ -1,0 +1,4 @@
+figure,output_path
+Annual police salary spending,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/figures/uc_police_spending_2011_2024_annual_salary_spending.png
+Cumulative police spending,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/figures/uc_police_spending_2011_2024_cumulative_salary_spending.png
+Annual police pay-component mix,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/figures/uc_police_spending_2011_2024_annual_component_mix.png

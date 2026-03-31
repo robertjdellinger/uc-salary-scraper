@@ -1,0 +1,5 @@
+analysis_year,query_slug,search_term,raw_file,expected_total_records,scraped_rows,total_pages_reported,unique_pages_scraped
+2024,police,POLICE,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/raw/transparent_california/2024/tc_2024_police.csv,462,462,10,10
+2024,librarian,LIBRARIAN,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/raw/transparent_california/2024/tc_2024_librarian.csv,502,502,11,11
+2024,uc_president,PRESIDENT OF THE UNIV,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/raw/transparent_california/2024/tc_2024_uc_president.csv,1,1,1,1
+2024,chancellor,CHAN,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/raw/transparent_california/2024/tc_2024_chancellor.csv,423,423,9,9

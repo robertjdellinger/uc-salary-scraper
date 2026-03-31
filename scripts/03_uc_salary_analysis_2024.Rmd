@@ -1,0 +1,532 @@
+---
+title: "Publication-Quality UC Salary Analysis (2024)"
+author: "Robert J. Dellinger"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+bibliography: "../references/uc_salary_sources.bib"
+link-citations: true
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    df_print: paged
+---
+
+# Title
+
+This section states the final analysis title.
+
+Publication-Quality UC Salary Analysis (2024)
+
+# Name
+
+This section identifies the analyst responsible for the report.
+
+Robert J. Dellinger
+
+# Date
+
+This section records the report date.
+
+`r format(Sys.Date(), "%B %d, %Y")`
+
+# Objective
+
+This section explains the purpose of the report before any analysis code runs.
+
+The objective is to produce publication-quality, advocacy-ready salary analysis for the University of California that combines the latest available 2024 actual-pay cohorts from Transparent California with official 2024-25 UCOP pay-scale benchmarks for graduate-worker, postdoctoral, and ladder-rank professor title series.
+
+# Source
+
+This section names the empirical and interpretive sources used in the report.
+
+The report uses the latest available 2024 actual-pay cohorts scraped from Transparent California for police employees, librarians, chancellors, and the UC president [@transparentcalifornia_uc_2026; @transparentcalifornia_uc_2024_progress_2026], and official 2024-25 UCOP salary-scale tables for graduate workers, postdoctoral scholars, and ladder-rank professor benchmarks [@ucop_2024_scales_t18; @ucop_2024_scales_t22; @ucop_2024_scales_t23; @ucop_2024_scales_t1].
+
+# Source documentation and information
+
+This section summarizes the source metadata, interpretation limits, and why specific cohorts were chosen.
+
+Transparent California provides record-level pay components, which makes it useful for police and executive analysis. The 2024 UC page is public but still marked as in progress, so the actual-pay results here should be read as the latest available 2024 records rather than a frozen final census [@transparentcalifornia_uc_2024_progress_2026]. The site still blocks deeper pagination on large academic and graduate-worker searches, so official UCOP salary-scale tables are used for those cohorts instead of partial public-search results. In UCOP Table 18, `Group 1` covers campuses outside Berkeley, Los Angeles, and San Francisco, while `Group 2` covers Berkeley, Los Angeles, and San Francisco [@ucop_2024_scales_t18]. This report collapses teaching assistant and teaching fellow rows into one broader `ASE instructional titles` benchmark for public-facing clarity while preserving the underlying `T018B` and `T018C` codes in the benchmark mapping table. Lecturer series are removed from the main comparison because the 2024 represented lecturer scales now run through long Unit 18 point ladders that are analytically important but visually overwhelm the simpler cross-cohort comparison. The report continues to emphasize salary-plan codes such as `T001`, `T018B`, `T018C`, `T022`, and `T023` because those codes make the salary structures reusable for bargaining and organizing analysis [@ucop_2024_scales_t18; @ucop_2024_scales_t22; @ucop_2024_scales_t23; @ucop_2024_scales_t1].
+
+# Methods, including equations and conceptual definitions
+
+This section explains the analytic logic before the code executes.
+
+The report uses median `total_pay_benefits` for actual Transparent California cohorts and annual salary-scale ranges for official UCOP benchmark cohorts. It also uses a Graduate Student Researcher floor benchmark:
+
+- `ratio_to_gsr_floor = compensation_measure / 69,129`
+
+where `69,129` is the 2024-25 annual `T022 Grade 1, Increment 1` GSR scale [@ucop_2024_scales_t22].
+
+# Setup and load packages
+
+This section loads helper functions, packages, and file paths.
+
+```{r setup-and-load-packages}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+utility_path <- if (file.exists("scripts/functions/uc_salary_utils.R")) {
+  "scripts/functions/uc_salary_utils.R"
+} else {
+  "functions/uc_salary_utils.R"
+}
+
+source(utility_path)
+uc_salary_load_packages()
+
+analysis_year <- 2024L
+analytic_input <- uc_salary_path("data", "processed", paste0("uc_salary_", analysis_year, "_analytic_dataset.csv"))
+benchmark_input <- uc_salary_path("data", "raw", "uc_reference", "uc_2024_25_pay_scale_benchmarks.csv")
+actual_table_output <- uc_salary_path("outputs", "tables", paste0("uc_salary_", analysis_year, "_actual_median_compensation.csv"))
+benchmark_table_output <- uc_salary_path("outputs", "tables", paste0("uc_salary_", analysis_year, "_benchmark_ranges.csv"))
+benchmark_mapping_output <- uc_salary_path("outputs", "tables", paste0("uc_salary_", analysis_year, "_benchmark_mapping.csv"))
+comparison_table_output <- uc_salary_path("outputs", "tables", paste0("uc_salary_", analysis_year, "_actual_vs_benchmark_comparison.csv"))
+police_table_output <- uc_salary_path("outputs", "tables", paste0("uc_salary_", analysis_year, "_police_pay_components.csv"))
+figure_manifest_output <- uc_salary_path("outputs", "logs", "qa", paste0("uc_salary_", analysis_year, "_figure_manifest.csv"))
+report_qa_output <- uc_salary_path("outputs", "logs", "qa", paste0("uc_salary_", analysis_year, "_analysis_qa_summary.csv"))
+
+instructional_ase_label <- "ASE instructional titles"
+instructional_group_pattern <- "^(Teaching assistants|Teaching fellows)"
+lecturer_benchmark_exclusions <- c(
+  "Lecturers with potential SOE",
+  "Lecturers with SOE",
+  "Senior lecturers with SOE"
+)
+```
+
+# Validation
+
+This section validates that the required actual-pay and benchmark inputs exist.
+
+```{r validation}
+stopifnot(file.exists(analytic_input))
+stopifnot(file.exists(benchmark_input))
+
+analytic_data <- readr::read_csv(analytic_input, show_col_types = FALSE)
+benchmark_data <- readr::read_csv(benchmark_input, show_col_types = FALSE)
+
+stopifnot(nrow(analytic_data) > 0)
+stopifnot(nrow(benchmark_data) > 0)
+
+validation_summary <- tibble::tibble(
+  validation_check = c(
+    "Actual-pay rows available",
+    "Benchmark rows available",
+    "Actual-pay cohort groups available",
+    "Benchmark cohort groups available"
+  ),
+  validation_result = c(
+    nrow(analytic_data),
+    nrow(benchmark_data),
+    dplyr::n_distinct(analytic_data$cohort_group),
+    dplyr::n_distinct(benchmark_data$cohort_group)
+  )
+)
+
+knitr::kable(validation_summary)
+```
+
+# Importing data
+
+This section imports the actual-pay and benchmark datasets used to build the final graphics and tables.
+
+```{r importing-data}
+analytic_data %>%
+  dplyr::count(cohort_group, analysis_cohort, sort = TRUE) %>%
+  knitr::kable()
+
+benchmark_data %>%
+  dplyr::filter(
+    !analysis_cohort %in% lecturer_benchmark_exclusions
+  ) %>%
+  dplyr::mutate(
+    grouped_analysis_cohort = dplyr::case_when(
+      stringr::str_detect(analysis_cohort, instructional_group_pattern) ~ instructional_ase_label,
+      TRUE ~ analysis_cohort
+    )
+  ) %>%
+  dplyr::distinct(
+    cohort_group,
+    analysis_cohort = grouped_analysis_cohort,
+    source_table,
+    salary_plan_or_grade,
+    range_label
+  ) %>%
+  knitr::kable()
+```
+
+# Processing data
+
+This section creates the summary tables and publication-quality graphics used in the report.
+
+```{r processing-data}
+actual_medians <- analytic_data %>%
+  dplyr::group_by(cohort_group, analysis_cohort) %>%
+  dplyr::summarise(
+    workers = dplyr::n(),
+    median_regular_pay = stats::median(regular_pay, na.rm = TRUE),
+    median_overtime_pay = stats::median(overtime_pay, na.rm = TRUE),
+    median_other_pay = stats::median(other_pay, na.rm = TRUE),
+    median_total_pay = stats::median(total_pay, na.rm = TRUE),
+    median_total_pay_benefits = stats::median(total_pay_benefits, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+gsr_floor <- benchmark_data %>%
+  dplyr::filter(analysis_cohort == "Graduate student researchers") %>%
+  dplyr::pull(benchmark_low_annual)
+
+benchmark_mapping <- benchmark_data %>%
+  dplyr::mutate(
+    grouped_analysis_cohort = dplyr::case_when(
+      stringr::str_detect(analysis_cohort, instructional_group_pattern) ~ instructional_ase_label,
+      TRUE ~ analysis_cohort
+    ),
+    included_in_main_comparison = !analysis_cohort %in% lecturer_benchmark_exclusions,
+    source_type = "UCOP benchmark salary scale",
+    inclusion_note = dplyr::case_when(
+      grouped_analysis_cohort == instructional_ase_label ~ "Included in the main comparison as a broader ASE instructional benchmark; the underlying Table 18 TA and TF Group 1 and Group 2 codes remain preserved in this mapping table.",
+      included_in_main_comparison ~ "Included in the main 2024 cross-sectional comparison.",
+      TRUE ~ "Excluded from the main cross-sectional figure because Unit 18 lecturer scales are analytically distinct and visually overwhelm the core ladder-rank comparison."
+    )
+  )
+
+benchmark_ranges <- benchmark_data %>%
+  dplyr::filter(
+    !analysis_cohort %in% lecturer_benchmark_exclusions
+  ) %>%
+  dplyr::mutate(
+    grouped_analysis_cohort = dplyr::case_when(
+      stringr::str_detect(analysis_cohort, instructional_group_pattern) ~ instructional_ase_label,
+      TRUE ~ analysis_cohort
+    ),
+    grouped_range_label = dplyr::case_when(
+      grouped_analysis_cohort == instructional_ase_label ~ "Table 18 Groups 1 and 2 combined across teaching assistant and teaching fellow titles",
+      TRUE ~ range_label
+    )
+  ) %>%
+  dplyr::group_by(cohort_group, analysis_cohort = grouped_analysis_cohort) %>%
+  dplyr::summarise(
+    source_table = paste(sort(unique(source_table)), collapse = " + "),
+    salary_plan_or_grade = paste(sort(unique(salary_plan_or_grade)), collapse = " + "),
+    range_label = dplyr::first(grouped_range_label),
+    benchmark_low_annual = min(benchmark_low_annual, na.rm = TRUE),
+    benchmark_high_annual = max(benchmark_high_annual, na.rm = TRUE),
+    benchmark_low_monthly = min(benchmark_low_monthly, na.rm = TRUE),
+    benchmark_high_monthly = max(benchmark_high_monthly, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::mutate(
+    cohort_group = dplyr::recode(cohort_group, "Faculty and instruction" = "Professor benchmarks"),
+    ratio_low_to_gsr_floor = benchmark_low_annual / gsr_floor,
+    ratio_high_to_gsr_floor = benchmark_high_annual / gsr_floor
+  )
+
+actual_vs_benchmark <- dplyr::bind_rows(
+  actual_medians %>%
+    dplyr::transmute(
+      cohort_group,
+      analysis_cohort,
+      measure_type = "Actual median total pay and benefits",
+      value_low = median_total_pay_benefits,
+      value_high = median_total_pay_benefits,
+      display_value = median_total_pay_benefits,
+      ratio_low_to_gsr_floor = median_total_pay_benefits / gsr_floor,
+      ratio_high_to_gsr_floor = median_total_pay_benefits / gsr_floor,
+      detail = paste0("n = ", workers)
+    ),
+  benchmark_ranges %>%
+    dplyr::transmute(
+      cohort_group,
+      analysis_cohort,
+      measure_type = "Official salary scale range",
+      value_low = benchmark_low_annual,
+      value_high = benchmark_high_annual,
+      display_value = (benchmark_low_annual + benchmark_high_annual) / 2,
+      ratio_low_to_gsr_floor,
+      ratio_high_to_gsr_floor,
+      detail = paste(source_table, salary_plan_or_grade, range_label, sep = " | ")
+    )
+) %>%
+  dplyr::mutate(
+    analysis_cohort = factor(
+      analysis_cohort,
+      levels = c(
+        instructional_ase_label,
+        "Graduate student researchers",
+        "Postdoctoral scholars",
+        "Assistant professors",
+        "Associate professors",
+        "Professors",
+        "Librarians",
+        "Police employees",
+        "Chancellors",
+        "UC president"
+      )
+    )
+  )
+
+police_pay_components <- analytic_data %>%
+  dplyr::filter(cohort_group == "Police") %>%
+  dplyr::group_by(police_role_group) %>%
+  dplyr::summarise(
+    workers = dplyr::n(),
+    median_regular_pay = stats::median(regular_pay, na.rm = TRUE),
+    median_overtime_pay = stats::median(overtime_pay, na.rm = TRUE),
+    median_other_pay = stats::median(other_pay, na.rm = TRUE),
+    median_total_pay = stats::median(total_pay, na.rm = TRUE),
+    median_total_pay_benefits = stats::median(total_pay_benefits, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  tidyr::pivot_longer(
+    cols = c(median_regular_pay, median_overtime_pay, median_other_pay),
+    names_to = "pay_component",
+    values_to = "median_amount"
+  ) %>%
+  dplyr::mutate(
+    pay_component = factor(
+      pay_component,
+      levels = c("median_regular_pay", "median_overtime_pay", "median_other_pay"),
+      labels = c("Regular pay", "Overtime pay", "Other pay")
+    )
+  )
+
+readr::write_csv(actual_medians, actual_table_output)
+readr::write_csv(benchmark_ranges, benchmark_table_output)
+readr::write_csv(benchmark_mapping, benchmark_mapping_output)
+readr::write_csv(actual_vs_benchmark, comparison_table_output)
+readr::write_csv(police_pay_components, police_table_output)
+
+plot_actual_medians <- actual_medians %>%
+  dplyr::mutate(
+    analysis_cohort = factor(
+      analysis_cohort,
+      levels = actual_medians %>% dplyr::arrange(median_total_pay_benefits) %>% dplyr::pull(analysis_cohort)
+    )
+  ) %>%
+  ggplot2::ggplot(ggplot2::aes(x = median_total_pay_benefits, y = analysis_cohort, fill = cohort_group)) +
+  ggplot2::geom_col(width = 0.72) +
+  ggplot2::geom_text(
+    ggplot2::aes(label = scales::label_dollar(scale_cut = scales::cut_short_scale())(median_total_pay_benefits)),
+    hjust = -0.08,
+    size = 3.4,
+    colour = "#1F2933"
+  ) +
+  ggplot2::scale_fill_manual(values = uc_salary_palette) +
+  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0, 0.18))) +
+  ggplot2::labs(
+    title = "Latest available 2024 actual-pay medians are highest for top UC leadership",
+    subtitle = "Police and librarians provide worker benchmarks from the focused UC cohorts currently visible in Transparent California.",
+    x = "Median total pay and benefits",
+    y = NULL,
+    fill = NULL,
+    caption = "Person-level Transparent California medians of annual total pay and benefits in nominal 2024 dollars. 2024 UC data collection remains in progress."
+  ) +
+  uc_salary_theme()
+
+plot_benchmark_ranges <- benchmark_ranges %>%
+  dplyr::mutate(
+    analysis_cohort = factor(
+      analysis_cohort,
+      levels = benchmark_ranges %>% dplyr::arrange(benchmark_high_annual) %>% dplyr::pull(analysis_cohort)
+    )
+  ) %>%
+  ggplot2::ggplot(ggplot2::aes(y = analysis_cohort, x = benchmark_low_annual, xend = benchmark_high_annual, colour = cohort_group)) +
+  ggplot2::geom_segment(linewidth = 5, lineend = "round") +
+  ggplot2::geom_point(ggplot2::aes(x = benchmark_low_annual), size = 2.6, colour = "#1F2933") +
+  ggplot2::geom_point(ggplot2::aes(x = benchmark_high_annual), size = 2.6, colour = "#1F2933") +
+  ggplot2::scale_colour_manual(values = uc_salary_palette[names(uc_salary_palette) %in% unique(benchmark_ranges$cohort_group)]) +
+  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0.02, 0.06))) +
+  ggplot2::labs(
+    title = "Official UC salary scales define a structural pay ladder across major UC cohorts",
+    subtitle = "Ranges show 2024-25 annual scale floors and ceilings for ASE instructional, GSR, postdoctoral, and ladder-rank professor benchmarks.",
+    x = "Annual salary scale amount",
+    y = NULL,
+    colour = NULL,
+    caption = "Official 2024-25 UCOP salary-scale benchmarks, not realized pay. Source tables shown here: T018B/T018C, T022, T023, and T001."
+  ) +
+  uc_salary_theme()
+
+plot_actual_vs_benchmark <- ggplot2::ggplot(actual_vs_benchmark) +
+  ggplot2::geom_segment(
+    data = dplyr::filter(actual_vs_benchmark, measure_type == "Official salary scale range"),
+    ggplot2::aes(y = analysis_cohort, yend = analysis_cohort, x = value_low, xend = value_high, colour = cohort_group),
+    linewidth = 5,
+    lineend = "round",
+    alpha = 0.8
+  ) +
+  ggplot2::geom_point(
+    data = dplyr::filter(actual_vs_benchmark, measure_type == "Actual median total pay and benefits"),
+    ggplot2::aes(y = analysis_cohort, x = display_value, fill = cohort_group),
+    shape = 21,
+    size = 4.2,
+    colour = "#1F2933",
+    stroke = 0.7
+  ) +
+  ggplot2::scale_colour_manual(values = uc_salary_palette) +
+  ggplot2::scale_fill_manual(values = uc_salary_palette) +
+  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0.02, 0.08))) +
+  ggplot2::guides(
+    colour = ggplot2::guide_legend(nrow = 2, byrow = TRUE),
+    fill = ggplot2::guide_legend(nrow = 2, byrow = TRUE)
+  ) +
+  ggplot2::labs(
+    title = "Campus police median compensation exceeds\nmultiple academic salary-scale ranges",
+    subtitle = "Points show latest-available 2024 medians; line segments show official 2024-25 salary-scale ranges.\nThe ASE benchmark combines UCOP Table 18 TA and TF titles.",
+    x = "Annual compensation or salary-scale amount",
+    y = NULL,
+    fill = NULL,
+    colour = NULL,
+    caption = "Points are person-level Transparent California medians of annual total pay and benefits in nominal 2024 dollars; segments are official 2024-25 UCOP salary-scale benchmarks."
+  ) +
+  uc_salary_theme()
+
+plot_ratio_to_gsr_floor <- ggplot2::ggplot(actual_vs_benchmark) +
+  ggplot2::geom_segment(
+    data = dplyr::filter(actual_vs_benchmark, measure_type == "Official salary scale range"),
+    ggplot2::aes(y = analysis_cohort, yend = analysis_cohort, x = ratio_low_to_gsr_floor, xend = ratio_high_to_gsr_floor, colour = cohort_group),
+    linewidth = 5,
+    lineend = "round",
+    alpha = 0.8
+  ) +
+  ggplot2::geom_point(
+    data = dplyr::filter(actual_vs_benchmark, measure_type == "Actual median total pay and benefits"),
+    ggplot2::aes(y = analysis_cohort, x = ratio_high_to_gsr_floor, fill = cohort_group),
+    shape = 21,
+    size = 4.2,
+    colour = "#1F2933",
+    stroke = 0.7
+  ) +
+  ggplot2::geom_vline(xintercept = 1, linewidth = 0.8, linetype = "dashed", colour = "#7B8794") +
+  ggplot2::scale_colour_manual(values = uc_salary_palette) +
+  ggplot2::scale_fill_manual(values = uc_salary_palette) +
+  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.08))) +
+  ggplot2::guides(
+    colour = ggplot2::guide_legend(nrow = 2, byrow = TRUE),
+    fill = ggplot2::guide_legend(nrow = 2, byrow = TRUE)
+  ) +
+  ggplot2::labs(
+    title = "Relative to the GSR salary floor,\npolice and top executives sit far higher",
+    subtitle = "1.0 equals the 2024-25 GSR floor of $69,129 under UCOP Table 22.",
+    x = "Ratio to the GSR annual salary floor",
+    y = NULL,
+    fill = NULL,
+    colour = NULL,
+    caption = "Benchmark ranges use official 2024-25 UCOP salary scales; points use person-level Transparent California medians in nominal 2024 dollars."
+  ) +
+  uc_salary_theme()
+
+plot_police_pay_components <- ggplot2::ggplot(police_pay_components, ggplot2::aes(x = median_amount, y = police_role_group, fill = pay_component)) +
+  ggplot2::geom_col(width = 0.72) +
+  ggplot2::scale_fill_manual(values = c("Regular pay" = "#3E7CB1", "Overtime pay" = "#D1495B", "Other pay" = "#EDA247")) +
+  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0, 0.05))) +
+  ggplot2::labs(
+    title = "Police compensation is materially shaped by overtime",
+    subtitle = "Median pay components for police leadership/supervision versus police officers and other police titles.",
+    x = "Median pay component amount",
+    y = NULL,
+    fill = NULL,
+    caption = "Person-level Transparent California police medians in nominal 2024 dollars. Benefits are excluded so the internal composition of cash pay is easier to read."
+  ) +
+  uc_salary_theme()
+
+figure_manifest <- tibble::tibble(
+  figure = c(
+    "Actual median compensation for accessible cohorts",
+    "Official benchmark salary-scale ranges",
+    "Actual medians overlaid on benchmark ranges",
+    "Ratios to the GSR salary floor",
+    "Police pay components"
+  ),
+  output_path = c(
+    uc_salary_save_plot(plot_actual_medians, "uc_salary_2024_actual_medians.png"),
+    uc_salary_save_plot(plot_benchmark_ranges, "uc_salary_2024_benchmark_ranges.png", width = 12.5, height = 8),
+    uc_salary_save_plot(plot_actual_vs_benchmark, "uc_salary_2024_actual_vs_benchmark.png", width = 12.5, height = 8),
+    uc_salary_save_plot(plot_ratio_to_gsr_floor, "uc_salary_2024_ratio_to_gsr_floor.png", width = 12.5, height = 8),
+    uc_salary_save_plot(plot_police_pay_components, "uc_salary_2024_police_pay_components.png")
+  )
+)
+
+readr::write_csv(figure_manifest, figure_manifest_output)
+```
+
+# Inspect data
+
+This section reviews the finished summary tables that support the report narrative.
+
+```{r inspect-data}
+actual_medians %>%
+  dplyr::arrange(dplyr::desc(median_total_pay_benefits)) %>%
+  knitr::kable()
+
+benchmark_ranges %>%
+  dplyr::select(analysis_cohort, salary_plan_or_grade, benchmark_low_annual, benchmark_high_annual) %>%
+  dplyr::arrange(benchmark_low_annual) %>%
+  knitr::kable()
+```
+
+# QA
+
+This section verifies that the report-level tables and figures were written successfully.
+
+```{r qa}
+report_qa_summary <- tibble::tibble(
+  qa_metric = c(
+    "Figures written",
+    "Actual-pay cohorts summarized",
+    "Benchmark cohorts summarized",
+    "Police rows available",
+    "Executive leadership rows available",
+    "GSR benchmark floor used in ratio analysis"
+  ),
+  qa_value = c(
+    nrow(figure_manifest),
+    nrow(actual_medians),
+    nrow(benchmark_ranges),
+    sum(analytic_data$cohort_group == "Police"),
+    sum(analytic_data$cohort_group == "Executive leadership"),
+    gsr_floor
+  )
+)
+
+readr::write_csv(report_qa_summary, report_qa_output)
+
+report_qa_summary %>%
+  knitr::kable()
+```
+
+# Export clean data
+
+This section lists the publication-ready tables and figures written by the report.
+
+```{r export-clean-data}
+export_manifest <- dplyr::bind_rows(
+  tibble::tibble(
+    artifact = c(
+      "Actual median compensation table",
+      "Benchmark range table",
+      "Benchmark mapping table",
+      "Actual versus benchmark comparison table",
+      "Police pay component table",
+      "Figure manifest",
+      "Analysis QA summary"
+    ),
+    output_path = c(
+      actual_table_output,
+      benchmark_table_output,
+      benchmark_mapping_output,
+      comparison_table_output,
+      police_table_output,
+      figure_manifest_output,
+      report_qa_output
+    )
+  ),
+  figure_manifest %>%
+    dplyr::rename(artifact = figure)
+)
+
+knitr::kable(export_manifest)
+```
+
+# Works Cited
+
+This section is reserved for the bibliography generated from the report citations.

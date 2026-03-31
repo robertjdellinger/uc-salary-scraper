@@ -1,0 +1,6 @@
+figure,output_path
+Actual median compensation for accessible cohorts,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/figures/uc_salary_2024_actual_medians.png
+Official benchmark salary-scale ranges,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/figures/uc_salary_2024_benchmark_ranges.png
+Actual medians overlaid on benchmark ranges,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/figures/uc_salary_2024_actual_vs_benchmark.png
+Ratios to the GSR salary floor,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/figures/uc_salary_2024_ratio_to_gsr_floor.png
+Police pay components,/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/figures/uc_salary_2024_police_pay_components.png

@@ -1,0 +1,4 @@
+qa_metric,qa_value
+Candidate-pool rows,1388
+Queries with matching expected and observed row counts,4
+Potential duplicate keys across candidate pools,10

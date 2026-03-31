@@ -1,0 +1,262 @@
+---
+title: "Clean and Classify UC Salary Cohorts (2024)"
+author: "Robert J. Dellinger"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    df_print: paged
+---
+
+# Title
+
+This section states the document title for the cleaning and cohort-design stage.
+
+Clean and Classify UC Salary Cohorts (2024)
+
+# Name
+
+This section identifies the analyst responsible for the cleaning workflow.
+
+Robert J. Dellinger
+
+# Date
+
+This section records the run date for the cleaning workflow.
+
+`r format(Sys.Date(), "%B %d, %Y")`
+
+# Objective
+
+This section explains the purpose of the cleaning stage before any transformation code runs.
+
+The objective is to turn the 2024 Transparent California candidate pool into an analysis-ready salary dataset with explicit cohort definitions, title-reference joins where available, documented priority rules, and reproducible QA outputs that make the recoding process auditable.
+
+# Source
+
+This section names the upstream inputs used in the cleaning workflow.
+
+The cleaning step uses the 2024 candidate pool, the standardized UC academic title reference, and the manual query registry that defines analytic cohorts, query priorities, and pattern-based inclusion and exclusion rules.
+
+# Source documentation and information
+
+This section documents the source limitations and interpretation rules that matter for cleaning.
+
+The candidate pool contains intentional overlap because some search terms are broad and search pages can match names as well as job titles. The query registry therefore supplies the explicit cohort logic and priority ordering that resolve overlaps. The UC academic title reference covers academic titles but not all staff titles, so missing staff title codes are treated explicitly rather than guessed. In this repository, that reference file is a partial academic join aid rather than a universal dictionary for all University of California staff titles.
+
+# Methods, including equations and conceptual definitions
+
+This section explains the analytic classification logic before the code executes.
+
+The workflow assigns cohorts in priority order and deduplicates by normalized employee name, normalized title, year, and agency. It keeps both source pay components and derived shares such as overtime share of total pay for later analysis. This document is the classification audit for the repository: it records the cleaned cohort file, the cohort reference table, the title crosswalk, the title-join audit, and the cleaning QA summary so downstream users can inspect how rows moved from overlapping candidate pools into final analytic cohorts.
+
+# Setup and load packages
+
+This section loads helper functions, packages, and file paths.
+
+```{r setup-and-load-packages}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+utility_path <- if (file.exists("scripts/functions/uc_salary_utils.R")) {
+  "scripts/functions/uc_salary_utils.R"
+} else {
+  "functions/uc_salary_utils.R"
+}
+
+source(utility_path)
+uc_salary_load_packages()
+
+analysis_year <- 2024L
+candidate_pool_input <- uc_salary_path("data", "processed", paste0("uc_salary_", analysis_year, "_candidate_pool.csv"))
+analytic_output <- uc_salary_path("data", "processed", paste0("uc_salary_", analysis_year, "_analytic_dataset.csv"))
+cohort_summary_output <- uc_salary_path("data", "processed", paste0("uc_salary_", analysis_year, "_summary_by_cohort.csv"))
+cohort_reference_output <- uc_salary_path("data", "processed", paste0("uc_salary_", analysis_year, "_cohort_reference.csv"))
+title_crosswalk_output <- uc_salary_path("data", "processed", paste0("uc_salary_", analysis_year, "_title_crosswalk.csv"))
+join_audit_output <- uc_salary_path("outputs", "logs", "joins", paste0("uc_salary_", analysis_year, "_title_join_audit.csv"))
+qa_output <- uc_salary_path("outputs", "logs", "qa", paste0("uc_salary_", analysis_year, "_cleaning_qa_summary.csv"))
+
+uc_salary_ensure_directory(dirname(join_audit_output))
+```
+
+# Validation
+
+This section validates that the required candidate pool and reference files exist.
+
+```{r validation}
+stopifnot(file.exists(candidate_pool_input))
+
+candidate_pool <- readr::read_csv(candidate_pool_input, show_col_types = FALSE)
+query_registry <- uc_salary_read_query_registry() %>%
+  dplyr::filter(analysis_year == !!analysis_year)
+title_reference <- uc_salary_read_title_reference()
+
+stopifnot(nrow(candidate_pool) > 0)
+stopifnot(nrow(query_registry) > 0)
+stopifnot(nrow(title_reference) > 0)
+
+validation_summary <- tibble::tibble(
+  validation_check = c(
+    "Candidate pool rows available",
+    "2024 cohort rules available",
+    "Academic title reference rows available"
+  ),
+  validation_result = c(
+    nrow(candidate_pool),
+    nrow(query_registry),
+    nrow(title_reference)
+  )
+)
+
+knitr::kable(validation_summary)
+```
+
+# Importing data
+
+This section imports the candidate pool and reference data used to classify records so the overlap built into the upstream scrape remains visible before any deduplication or cohort assignment happens.
+
+```{r importing-data}
+candidate_pool %>%
+  dplyr::count(query_slug, sort = TRUE) %>%
+  knitr::kable()
+```
+
+# Processing data
+
+This section applies the cohort rules, joins the academic title reference where available, resolves overlaps using explicit query priorities, and prepares the machine-readable processed outputs that document the cohort recodes.
+
+```{r processing-data}
+analytic_data <- candidate_pool %>%
+  uc_salary_assign_cohorts(query_registry = query_registry) %>%
+  uc_salary_join_title_reference(title_reference = title_reference) %>%
+  dplyr::arrange(cohort_group, analysis_cohort, dplyr::desc(total_pay_benefits))
+
+cohort_summary <- analytic_data %>%
+  dplyr::group_by(cohort_group, analysis_cohort) %>%
+  dplyr::summarise(
+    workers = dplyr::n(),
+    median_regular_pay = stats::median(regular_pay, na.rm = TRUE),
+    median_total_pay = stats::median(total_pay, na.rm = TRUE),
+    median_total_pay_benefits = stats::median(total_pay_benefits, na.rm = TRUE),
+    mean_total_pay_benefits = mean(total_pay_benefits, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::arrange(cohort_group, dplyr::desc(median_total_pay_benefits))
+
+title_join_audit <- analytic_data %>%
+  dplyr::count(analysis_cohort, job_title_clean, title_reference_match, sort = TRUE)
+
+cohort_reference <- query_registry %>%
+  dplyr::select(
+    analysis_year,
+    priority,
+    query_slug,
+    search_term,
+    analysis_cohort,
+    cohort_group,
+    cohort_family,
+    include_regex,
+    exclude_regex,
+    rationale
+  )
+
+title_crosswalk <- analytic_data %>%
+  dplyr::group_by(
+    source_search_term,
+    query_slug,
+    job_title,
+    job_title_clean,
+    analysis_cohort,
+    cohort_group,
+    cohort_family,
+    cohort_rule_rationale,
+    uc_title_job_code,
+    uc_cto_name,
+    title_reference_match,
+    police_role_group
+  ) %>%
+  dplyr::summarise(
+    source_records = dplyr::n(),
+    .groups = "drop"
+  ) %>%
+  dplyr::arrange(cohort_group, analysis_cohort, dplyr::desc(source_records), job_title_clean)
+
+readr::write_csv(analytic_data, analytic_output)
+readr::write_csv(cohort_summary, cohort_summary_output)
+readr::write_csv(cohort_reference, cohort_reference_output)
+readr::write_csv(title_crosswalk, title_crosswalk_output)
+readr::write_csv(title_join_audit, join_audit_output)
+
+cohort_summary %>%
+  knitr::kable()
+```
+
+# Inspect data
+
+This section inspects the cleaned analytic dataset so cohort sizes, title patterns, and the post-priority cohort allocation are visible before the final analysis report uses the file.
+
+```{r inspect-data}
+analytic_data %>%
+  dplyr::count(cohort_group, analysis_cohort, sort = TRUE) %>%
+  knitr::kable()
+```
+
+# QA
+
+This section records key quality checks for duplicates, missing compensation fields, and reference joins so downstream users can verify that the classification stage resolved overlap rather than silently carrying it forward.
+
+```{r qa}
+post_classification_duplicate_count <- analytic_data %>%
+  dplyr::count(employee_name_clean, job_title_clean, year, agency_clean) %>%
+  dplyr::filter(n > 1) %>%
+  nrow()
+
+qa_summary <- tibble::tibble(
+  qa_metric = c(
+    "Analytic dataset rows",
+    "Distinct analysis cohorts",
+    "Post-classification duplicate keys",
+    "Rows with missing total compensation",
+    "Academic title reference match rate"
+  ),
+  qa_value = c(
+    nrow(analytic_data),
+    dplyr::n_distinct(analytic_data$analysis_cohort),
+    post_classification_duplicate_count,
+    sum(is.na(analytic_data$total_pay_benefits)),
+    mean(analytic_data$title_reference_match %in% c(TRUE, "TRUE"), na.rm = TRUE)
+  )
+)
+
+readr::write_csv(qa_summary, qa_output)
+
+qa_summary %>%
+  knitr::kable()
+```
+
+# Export clean data
+
+This section writes the cleaned analysis-ready artifacts that the final report consumes, including the cohort reference, title crosswalk, join audit, and QA outputs that document the cleaning logic explicitly.
+
+```{r export-clean-data}
+export_paths <- tibble::tibble(
+  artifact = c(
+    "Analysis-ready 2024 cohort dataset",
+    "2024 summary by cohort",
+    "2024 cohort reference table",
+    "2024 title crosswalk",
+    "2024 title-join audit",
+    "2024 cleaning QA summary"
+  ),
+  output_path = c(
+    analytic_output,
+    cohort_summary_output,
+    cohort_reference_output,
+    title_crosswalk_output,
+    join_audit_output,
+    qa_output
+  )
+)
+
+knitr::kable(export_paths)
+```
