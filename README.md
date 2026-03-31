@@ -98,7 +98,9 @@ Unless otherwise noted, the original code and original written documentation in 
 The repository draws primarily on three source families: Transparent California UC individual salary records, Transparent California UC job-title-summary pages, and official UCOP academic salary-scale materials. The source review, reporting-period rules, pay-field meanings, and citation inventory are documented in [references/uc_salary_methodology.md](references/uc_salary_methodology.md) and [references/uc_salary_sources.bib](references/uc_salary_sources.bib).
 
 ## Contact
+**Robert J. Dellinger**  
+**Ph.D. Student, Atmospheric & Oceanic Sciences, UCLA**  
+**rjdellinger[at]ucla.edu**  
 
-Robert J. Dellinger  
-Ph.D. Student, Atmospheric & Oceanic Sciences, UCLA  
-rjdellinger[at]ucla.edu
+[![GitHub](https://img.shields.io/badge/GitHub-rob--dellinger-181717?logo=github&logoColor=white)](https://github.com/rob-dellinger)  
+
