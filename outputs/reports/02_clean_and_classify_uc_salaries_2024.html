@@ -13,7 +13,7 @@
 
 <meta name="date" content="2026-03-31" />
 
-<title>Clean and Classify UC Salary Cohorts (2024)</title>
+<title>2024 UC Salary Cohort Classification and Crosswalk Audit</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1639,8 +1639,8 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Clean and Classify UC Salary Cohorts
-(2024)</h1>
+<h1 class="title toc-ignore">2024 UC Salary Cohort Classification and
+Crosswalk Audit</h1>
 <h4 class="author">Robert J. Dellinger</h4>
 <h4 class="date">March 31, 2026</h4>
 
@@ -1648,68 +1648,74 @@ display: none;
 
 <div id="TOC">
 <ul>
-<li><a href="#title" id="toc-title">Title</a></li>
-<li><a href="#name" id="toc-name">Name</a></li>
-<li><a href="#date" id="toc-date">Date</a></li>
-<li><a href="#objective" id="toc-objective">Objective</a></li>
-<li><a href="#source" id="toc-source">Source</a></li>
-<li><a href="#source-documentation-and-information" id="toc-source-documentation-and-information">Source documentation and
-information</a></li>
-<li><a href="#methods-including-equations-and-conceptual-definitions" id="toc-methods-including-equations-and-conceptual-definitions">Methods,
-including equations and conceptual definitions</a></li>
+<li><a href="#classification-overview" id="toc-classification-overview">Classification overview</a>
+<ul>
+<li><a href="#source-basis" id="toc-source-basis">Source basis</a></li>
+<li><a href="#source-documentation-and-interpretation-limits" id="toc-source-documentation-and-interpretation-limits">Source
+documentation and interpretation limits</a></li>
+<li><a href="#classification-logic" id="toc-classification-logic">Classification logic</a></li>
+</ul></li>
 <li><a href="#setup-and-load-packages" id="toc-setup-and-load-packages">Setup and load packages</a></li>
-<li><a href="#validation" id="toc-validation">Validation</a></li>
-<li><a href="#importing-data" id="toc-importing-data">Importing
-data</a></li>
-<li><a href="#processing-data" id="toc-processing-data">Processing
-data</a></li>
-<li><a href="#inspect-data" id="toc-inspect-data">Inspect data</a></li>
-<li><a href="#qa" id="toc-qa">QA</a></li>
-<li><a href="#export-clean-data" id="toc-export-clean-data">Export clean
-data</a></li>
+<li><a href="#input-validation-for-the-classification-audit" id="toc-input-validation-for-the-classification-audit">Input validation
+for the classification audit</a></li>
+<li><a href="#candidate-pool-overlap-entering-classification" id="toc-candidate-pool-overlap-entering-classification">Candidate-pool
+overlap entering classification</a>
+<ul>
+<li><a href="#candidate-pool-overlap-before-classification" id="toc-candidate-pool-overlap-before-classification">Candidate-pool
+overlap before classification</a></li>
+</ul></li>
+<li><a href="#construction-of-classified-cohorts-and-audit-outputs" id="toc-construction-of-classified-cohorts-and-audit-outputs">Construction
+of classified cohorts and audit outputs</a></li>
+<li><a href="#classified-cohorts-after-priority-resolution" id="toc-classified-cohorts-after-priority-resolution">Classified cohorts
+after priority resolution</a></li>
+<li><a href="#report-level-validation-checks" id="toc-report-level-validation-checks">Report-level validation
+checks</a></li>
+<li><a href="#saved-datasets-crosswalks-and-audit-artifacts" id="toc-saved-datasets-crosswalks-and-audit-artifacts">Saved datasets,
+crosswalks, and audit artifacts</a></li>
 </ul>
 </div>
 
-<div id="title" class="section level1">
-<h1>Title</h1>
-<p>This section states the document title for the cleaning and
-cohort-design stage.</p>
-<p>Clean and Classify UC Salary Cohorts (2024)</p>
-</div>
-<div id="name" class="section level1">
-<h1>Name</h1>
-<p>This section identifies the analyst responsible for the cleaning
-workflow.</p>
-<p>Robert J. Dellinger</p>
-</div>
-<div id="date" class="section level1">
-<h1>Date</h1>
-<p>This section records the run date for the cleaning workflow.</p>
-<p>March 31, 2026</p>
-</div>
-<div id="objective" class="section level1">
-<h1>Objective</h1>
-<p>This section explains the purpose of the cleaning stage before any
-transformation code runs.</p>
+<!-- 1. Title -->
+<!-- Rendered through the YAML title block above. -->
+<!-- 2. Name -->
+<!-- Rendered through the YAML author field above. -->
+<!-- 3. Date -->
+<!-- Rendered through the YAML date field above. -->
+<!-- 4. Objective -->
+<!-- 5. Source -->
+<!-- 6. Source documentation and information -->
+<!-- 7. Methods, including equations and conceptual definitions -->
+<p>This report is the repository’s cohort-classification audit. It takes
+the intentionally overlapping 2024 candidate pool produced by the
+focused scrape and turns it into an analysis-ready person-level cohort
+file with an explicit crosswalk, a cohort-rule reference, a
+title-reference join audit, and QA outputs that show how the recoding
+decisions were made.</p>
+<blockquote>
+<p>Interpretive note: this report is a classification artifact, not a
+substantive findings report. Its tables document how rows move from the
+upstream candidate pool into final analytic cohorts, and its academic
+title reference is a partial join aid rather than a universal dictionary
+for all University of California staff titles.</p>
+</blockquote>
+<div id="classification-overview" class="section level2">
+<h2>Classification overview</h2>
 <p>The objective is to turn the 2024 Transparent California candidate
 pool into an analysis-ready salary dataset with explicit cohort
 definitions, title-reference joins where available, documented priority
 rules, and reproducible QA outputs that make the recoding process
 auditable.</p>
-</div>
-<div id="source" class="section level1">
-<h1>Source</h1>
-<p>This section names the upstream inputs used in the cleaning
-workflow.</p>
+<div id="source-basis" class="section level3">
+<h3>Source basis</h3>
 <p>The cleaning step uses the 2024 candidate pool, the standardized UC
 academic title reference, and the manual query registry that defines
 analytic cohorts, query priorities, and pattern-based inclusion and
-exclusion rules.</p>
+exclusion rules. In other words, this stage moves the repository from an
+intentionally overlapping scrape corpus to an explicit, auditable
+cohort-classification output.</p>
 </div>
-<div id="source-documentation-and-information" class="section level1">
-<h1>Source documentation and information</h1>
-<p>This section documents the source limitations and interpretation
-rules that matter for cleaning.</p>
+<div id="source-documentation-and-interpretation-limits" class="section level3">
+<h3>Source documentation and interpretation limits</h3>
 <p>The candidate pool contains intentional overlap because some search
 terms are broad and search pages can match names as well as job titles.
 The query registry therefore supplies the explicit cohort logic and
@@ -1717,12 +1723,14 @@ priority ordering that resolve overlaps. The UC academic title reference
 covers academic titles but not all staff titles, so missing staff title
 codes are treated explicitly rather than guessed. In this repository,
 that reference file is a partial academic join aid rather than a
-universal dictionary for all University of California staff titles.</p>
+universal dictionary for all University of California staff titles. The
+outputs of this stage should therefore be read as classification
+artifacts: they document how the repository moved from candidate rows to
+analytic cohorts and which titles matched the academic reference versus
+remaining unmatched.</p>
 </div>
-<div id="methods-including-equations-and-conceptual-definitions" class="section level1">
-<h1>Methods, including equations and conceptual definitions</h1>
-<p>This section explains the analytic classification logic before the
-code executes.</p>
+<div id="classification-logic" class="section level3">
+<h3>Classification logic</h3>
 <p>The workflow assigns cohorts in priority order and deduplicates by
 normalized employee name, normalized title, year, and agency. It keeps
 both source pay components and derived shares such as overtime share of
@@ -1730,10 +1738,15 @@ total pay for later analysis. This document is the classification audit
 for the repository: it records the cleaned cohort file, the cohort
 reference table, the title crosswalk, the title-join audit, and the
 cleaning QA summary so downstream users can inspect how rows moved from
-overlapping candidate pools into final analytic cohorts.</p>
+overlapping candidate pools into final analytic cohorts. In
+methodological terms, this stage is where the repository locks the
+person-level cohort design that the cross-sectional report will later
+summarize.</p>
+<!-- 8. Setup and load packages -->
 </div>
-<div id="setup-and-load-packages" class="section level1">
-<h1>Setup and load packages</h1>
+</div>
+<div id="setup-and-load-packages" class="section level2">
+<h2>Setup and load packages</h2>
 <p>This section loads helper functions, packages, and file paths.</p>
 <pre class="r"><code>knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
@@ -1756,11 +1769,13 @@ join_audit_output &lt;- uc_salary_path(&quot;outputs&quot;, &quot;logs&quot;, &q
 qa_output &lt;- uc_salary_path(&quot;outputs&quot;, &quot;logs&quot;, &quot;qa&quot;, paste0(&quot;uc_salary_&quot;, analysis_year, &quot;_cleaning_qa_summary.csv&quot;))
 
 uc_salary_ensure_directory(dirname(join_audit_output))</code></pre>
+<!-- 9. Validation -->
 </div>
-<div id="validation" class="section level1">
-<h1>Validation</h1>
-<p>This section validates that the required candidate pool and reference
-files exist.</p>
+<div id="input-validation-for-the-classification-audit" class="section level2">
+<h2>Input validation for the classification audit</h2>
+<p>These checks confirm that the candidate pool and the rule/reference
+files needed to resolve overlap are present before any cohort assignment
+begins.</p>
 <pre class="r"><code>stopifnot(file.exists(candidate_pool_input))
 
 candidate_pool &lt;- readr::read_csv(candidate_pool_input, show_col_types = FALSE)
@@ -1808,12 +1823,20 @@ knitr::kable(validation_summary)</code></pre>
 </tr>
 </tbody>
 </table>
+<!-- 10. Importing data -->
 </div>
-<div id="importing-data" class="section level1">
-<h1>Importing data</h1>
+<div id="candidate-pool-overlap-entering-classification" class="section level2">
+<h2>Candidate-pool overlap entering classification</h2>
 <p>This section imports the candidate pool and reference data used to
 classify records so the overlap built into the upstream scrape remains
-visible before any deduplication or cohort assignment happens.</p>
+visible before any deduplication or cohort assignment happens. The
+counts below are still upstream candidate-pool counts, not final cohort
+sizes.</p>
+<div id="candidate-pool-overlap-before-classification" class="section level3">
+<h3>Candidate-pool overlap before classification</h3>
+<p>The table below shows the size of each upstream query return before
+priority rules and title filters resolve overlap. This is the baseline
+against which the classification audit should be read.</p>
 <pre class="r"><code>candidate_pool %&gt;%
   dplyr::count(query_slug, sort = TRUE) %&gt;%
   knitr::kable()</code></pre>
@@ -1843,13 +1866,18 @@ visible before any deduplication or cohort assignment happens.</p>
 </tr>
 </tbody>
 </table>
+<!-- 11. Processing data -->
 </div>
-<div id="processing-data" class="section level1">
-<h1>Processing data</h1>
+</div>
+<div id="construction-of-classified-cohorts-and-audit-outputs" class="section level2">
+<h2>Construction of classified cohorts and audit outputs</h2>
 <p>This section applies the cohort rules, joins the academic title
 reference where available, resolves overlaps using explicit query
 priorities, and prepares the machine-readable processed outputs that
-document the cohort recodes.</p>
+document the cohort recodes. Analytically, it moves through four steps:
+applying the cohort rules, joining the academic title reference where
+available, resolving overlap with explicit priorities, and writing the
+audit tables that explain how the final cohort file was built.</p>
 <pre class="r"><code>analytic_data &lt;- candidate_pool %&gt;%
   uc_salary_assign_cohorts(query_registry = query_registry) %&gt;%
   uc_salary_join_title_reference(title_reference = title_reference) %&gt;%
@@ -1973,12 +2001,15 @@ cohort_summary %&gt;%
 </tr>
 </tbody>
 </table>
+<!-- 12. Inspect data -->
 </div>
-<div id="inspect-data" class="section level1">
-<h1>Inspect data</h1>
+<div id="classified-cohorts-after-priority-resolution" class="section level2">
+<h2>Classified cohorts after priority resolution</h2>
 <p>This section inspects the cleaned analytic dataset so cohort sizes,
 title patterns, and the post-priority cohort allocation are visible
-before the final analysis report uses the file.</p>
+before the final analysis report uses the file. At this point the rows
+represent the repository’s locked 2024 person-level cohorts rather than
+the broader overlapping scrape corpus.</p>
 <pre class="r"><code>analytic_data %&gt;%
   dplyr::count(cohort_group, analysis_cohort, sort = TRUE) %&gt;%
   knitr::kable()</code></pre>
@@ -2013,13 +2044,16 @@ before the final analysis report uses the file.</p>
 </tr>
 </tbody>
 </table>
+<!-- 13. QA -->
 </div>
-<div id="qa" class="section level1">
-<h1>QA</h1>
+<div id="report-level-validation-checks" class="section level2">
+<h2>Report-level validation checks</h2>
 <p>This section records key quality checks for duplicates, missing
 compensation fields, and reference joins so downstream users can verify
 that the classification stage resolved overlap rather than silently
-carrying it forward.</p>
+carrying it forward. The title-reference match rate is reported as an
+audit statistic, not as a completeness claim for all UC staff
+titles.</p>
 <pre class="r"><code>post_classification_duplicate_count &lt;- analytic_data %&gt;%
   dplyr::count(employee_name_clean, job_title_clean, year, agency_clean) %&gt;%
   dplyr::filter(n &gt; 1) %&gt;%
@@ -2076,21 +2110,23 @@ qa_summary %&gt;%
 </tr>
 </tbody>
 </table>
+<!-- 14. Export clean data -->
 </div>
-<div id="export-clean-data" class="section level1">
-<h1>Export clean data</h1>
-<p>This section writes the cleaned analysis-ready artifacts that the
-final report consumes, including the cohort reference, title crosswalk,
-join audit, and QA outputs that document the cleaning logic
+<div id="saved-datasets-crosswalks-and-audit-artifacts" class="section level2">
+<h2>Saved datasets, crosswalks, and audit artifacts</h2>
+<p>This artifact registry functions as a reproducibility appendix for
+the classification stage. It lists the cleaned analysis-ready artifacts
+that the final report consumes, including the cohort reference, title
+crosswalk, join audit, and QA outputs that document the cleaning logic
 explicitly.</p>
 <pre class="r"><code>export_paths &lt;- tibble::tibble(
   artifact = c(
     &quot;Analysis-ready 2024 cohort dataset&quot;,
     &quot;2024 summary by cohort&quot;,
-    &quot;2024 cohort reference table&quot;,
-    &quot;2024 title crosswalk&quot;,
-    &quot;2024 title-join audit&quot;,
-    &quot;2024 cleaning QA summary&quot;
+    &quot;2024 cohort-rule reference table&quot;,
+    &quot;2024 title crosswalk (observed titles to analytic cohorts)&quot;,
+    &quot;2024 title-join audit (academic reference join)&quot;,
+    &quot;2024 classification QA summary&quot;
   ),
   output_path = c(
     analytic_output,
@@ -2102,11 +2138,13 @@ explicitly.</p>
   )
 )
 
-knitr::kable(export_paths)</code></pre>
+export_paths %&gt;%
+  dplyr::mutate(output_path = uc_salary_relpath(output_path)) %&gt;%
+  knitr::kable()</code></pre>
 <table>
 <colgroup>
-<col width="24%" />
-<col width="75%" />
+<col width="51%" />
+<col width="48%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -2117,27 +2155,28 @@ knitr::kable(export_paths)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">Analysis-ready 2024 cohort dataset</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/processed/uc_salary_2024_analytic_dataset.csv</td>
+<td align="left">data/processed/uc_salary_2024_analytic_dataset.csv</td>
 </tr>
 <tr class="even">
 <td align="left">2024 summary by cohort</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/processed/uc_salary_2024_summary_by_cohort.csv</td>
+<td align="left">data/processed/uc_salary_2024_summary_by_cohort.csv</td>
 </tr>
 <tr class="odd">
-<td align="left">2024 cohort reference table</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/processed/uc_salary_2024_cohort_reference.csv</td>
+<td align="left">2024 cohort-rule reference table</td>
+<td align="left">data/processed/uc_salary_2024_cohort_reference.csv</td>
 </tr>
 <tr class="even">
-<td align="left">2024 title crosswalk</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/processed/uc_salary_2024_title_crosswalk.csv</td>
+<td align="left">2024 title crosswalk (observed titles to analytic
+cohorts)</td>
+<td align="left">data/processed/uc_salary_2024_title_crosswalk.csv</td>
 </tr>
 <tr class="odd">
-<td align="left">2024 title-join audit</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/logs/joins/uc_salary_2024_title_join_audit.csv</td>
+<td align="left">2024 title-join audit (academic reference join)</td>
+<td align="left">outputs/logs/joins/uc_salary_2024_title_join_audit.csv</td>
 </tr>
 <tr class="even">
-<td align="left">2024 cleaning QA summary</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/logs/qa/uc_salary_2024_cleaning_qa_summary.csv</td>
+<td align="left">2024 classification QA summary</td>
+<td align="left">outputs/logs/qa/uc_salary_2024_cleaning_qa_summary.csv</td>
 </tr>
 </tbody>
 </table>

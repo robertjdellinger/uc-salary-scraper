@@ -13,7 +13,7 @@
 
 <meta name="date" content="2026-03-31" />
 
-<title>Transparent California Focused Scrape for UC Salary Cohorts (2024)</title>
+<title>Focused 2024 Transparent California Scrape Audit for Tractable UC Cohorts</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1639,8 +1639,8 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Transparent California Focused Scrape for
-UC Salary Cohorts (2024)</h1>
+<h1 class="title toc-ignore">Focused 2024 Transparent California Scrape
+Audit for Tractable UC Cohorts</h1>
 <h4 class="author">Robert J. Dellinger</h4>
 <h4 class="date">March 31, 2026</h4>
 
@@ -1648,73 +1648,81 @@ UC Salary Cohorts (2024)</h1>
 
 <div id="TOC">
 <ul>
-<li><a href="#title" id="toc-title">Title</a></li>
-<li><a href="#name" id="toc-name">Name</a></li>
-<li><a href="#date" id="toc-date">Date</a></li>
-<li><a href="#objective" id="toc-objective">Objective</a></li>
-<li><a href="#source" id="toc-source">Source</a></li>
-<li><a href="#source-documentation-and-information" id="toc-source-documentation-and-information">Source documentation and
-information</a></li>
-<li><a href="#methods-including-equations-and-conceptual-definitions" id="toc-methods-including-equations-and-conceptual-definitions">Methods,
-including equations and conceptual definitions</a></li>
+<li><a href="#workflow-overview" id="toc-workflow-overview">Workflow
+overview</a>
+<ul>
+<li><a href="#source-basis-and-tractability-rule" id="toc-source-basis-and-tractability-rule">Source basis and
+tractability rule</a></li>
+<li><a href="#source-documentation-and-corpus-design-limits" id="toc-source-documentation-and-corpus-design-limits">Source
+documentation and corpus-design limits</a></li>
+<li><a href="#scrape-logic-and-compensation-identities" id="toc-scrape-logic-and-compensation-identities">Scrape logic and
+compensation identities</a></li>
+</ul></li>
 <li><a href="#setup-and-load-packages" id="toc-setup-and-load-packages">Setup and load packages</a></li>
-<li><a href="#validation" id="toc-validation">Validation</a></li>
-<li><a href="#importing-data" id="toc-importing-data">Importing
-data</a></li>
-<li><a href="#processing-data" id="toc-processing-data">Processing
-data</a></li>
-<li><a href="#inspect-data" id="toc-inspect-data">Inspect data</a></li>
-<li><a href="#qa" id="toc-qa">QA</a></li>
-<li><a href="#export-clean-data" id="toc-export-clean-data">Export clean
-data</a></li>
+<li><a href="#input-validation-for-the-focused-scrape" id="toc-input-validation-for-the-focused-scrape">Input validation for
+the focused scrape</a></li>
+<li><a href="#scrape-control-inputs-and-corpus-design-rules" id="toc-scrape-control-inputs-and-corpus-design-rules">Scrape-control
+inputs and corpus-design rules</a>
+<ul>
+<li><a href="#scrape-control-inputs" id="toc-scrape-control-inputs">Scrape-control inputs</a></li>
+</ul></li>
+<li><a href="#construction-of-the-focused-candidate-pool-and-audit-manifest" id="toc-construction-of-the-focused-candidate-pool-and-audit-manifest">Construction
+of the focused candidate pool and audit manifest</a></li>
+<li><a href="#candidate-pool-status-before-classification" id="toc-candidate-pool-status-before-classification">Candidate-pool
+status before classification</a></li>
+<li><a href="#report-level-validation-checks" id="toc-report-level-validation-checks">Report-level validation
+checks</a></li>
+<li><a href="#saved-tables-logs-and-upstream-artifacts" id="toc-saved-tables-logs-and-upstream-artifacts">Saved tables, logs,
+and upstream artifacts</a></li>
 </ul>
 </div>
 
-<div id="title" class="section level1">
-<h1>Title</h1>
-<p>This section states the document title for the scraping workflow.</p>
-<p>Transparent California Focused Scrape for UC Salary Cohorts
-(2024)</p>
-</div>
-<div id="name" class="section level1">
-<h1>Name</h1>
-<p>This section identifies the analyst responsible for the scraping
-workflow.</p>
-<p>Robert J. Dellinger</p>
-</div>
-<div id="date" class="section level1">
-<h1>Date</h1>
-<p>This section records the run date for the scrape.</p>
-<p>March 31, 2026</p>
-</div>
-<div id="objective" class="section level1">
-<h1>Objective</h1>
-<p>This section explains the purpose of the scraping workflow before any
-code runs.</p>
-<p>The objective is to build a reproducible 2024 candidate pool and
+<!-- 1. Title -->
+<!-- Rendered through the YAML title block above. -->
+<!-- 2. Name -->
+<!-- Rendered through the YAML author field above. -->
+<!-- 3. Date -->
+<!-- Rendered through the YAML date field above. -->
+<!-- 4. Objective -->
+<!-- 5. Source -->
+<!-- 6. Source documentation and information -->
+<!-- 7. Methods, including equations and conceptual definitions -->
+<p>This report is the repository’s focused 2024 scrape audit. It builds
+the upstream candidate pool and source-audit trail for tractable
+University of California cohorts, while making clear that the result is
+an auditable scrape artifact rather than a final cohort file or a census
+of all University of California employees.</p>
+<blockquote>
+<p>Interpretive note: the current Transparent California University of
+California page is <code>2024</code>, but it remains labeled
+<code>Data Collection in Progress</code>. This report therefore treats
+<code>2024</code> as the latest available University of California year
+rather than a finalized census, and it treats the combined candidate
+pool as an upstream design artifact that still contains intentional
+overlap.</p>
+</blockquote>
+<div id="workflow-overview" class="section level2">
+<h2>Workflow overview</h2>
+<p>The objective is to build a reproducible 2024 candidate-pool and
 source-audit trail for the latest available University of California
 salary records from Transparent California for worker groups that matter
 to organizing and pay-equity analysis. This document is intentionally a
 focused scrape audit rather than an exhaustive all-title census because
 the public UC search interface remains tractable only for a limited set
 of smaller cohorts.</p>
-</div>
-<div id="source" class="section level1">
-<h1>Source</h1>
-<p>This section names the primary source and clarifies why the analysis
-is restricted to a focused set of cohorts.</p>
+<div id="source-basis-and-tractability-rule" class="section level3">
+<h3>Source basis and tractability rule</h3>
 <p>The primary source is Transparent California’s University of
 California salary database. The scrape is restricted to 2024 and to
 cohorts whose public search results remain small enough to capture
 cleanly even though Transparent California still marks the 2024 UC
 database as in progress. The goal of this script is therefore to build
-an auditable candidate pool for tractable cohorts, not to claim a full
-person-level University of California census.</p>
+an auditable upstream candidate pool for tractable cohorts, not to claim
+a full person-level University of California census or a final analytic
+cohort file.</p>
 </div>
-<div id="source-documentation-and-information" class="section level1">
-<h1>Source documentation and information</h1>
-<p>This section documents the source behavior, fields, and
-interpretation limits that matter before scraping.</p>
+<div id="source-documentation-and-corpus-design-limits" class="section level3">
+<h3>Source documentation and corpus-design limits</h3>
 <p>Transparent California’s FAQ states that the values on the site are
 annual amounts for the reported year, that some agencies report on a
 fiscal-year basis and others on a calendar-year basis, that benefits
@@ -1727,35 +1735,39 @@ and <code>total_pay_benefits</code> as annual reported-year values
 rather than monthly or per-paycheck values. Search pages can match names
 as well as job titles, so the scrape intentionally builds broad
 candidate pools first and applies title-based cohort rules later in the
-cleaning report. As of March 31, 2026, Transparent California has posted
-2024 UC records but still labels the 2024 UC page as “Data Collection in
-Progress,” so this script treats 2024 as the latest available year
-rather than a finalized census. Large academic and graduate-worker
-cohorts are not scraped exhaustively here because the public search
-interface becomes unstable or incomplete at deeper pagination depths;
-those cohorts are handled elsewhere in the repository through official
-UCOP scale benchmarks rather than pretending this scrape can fully
-recover them.</p>
+cleaning report. Large academic and graduate-worker cohorts are not
+scraped exhaustively here because the public search interface becomes
+unstable or incomplete at deeper pagination depths; those cohorts are
+handled elsewhere in the repository through official UCOP scale
+benchmarks rather than pretending this scrape can fully recover them.
+The manual query registry used below is therefore a design-lock control
+file: it documents what the scrape is attempting and why, but it is not
+itself an empirical result.</p>
 </div>
-<div id="methods-including-equations-and-conceptual-definitions" class="section level1">
-<h1>Methods, including equations and conceptual definitions</h1>
-<p>This section explains the scraping logic and compensation definitions
-before the code executes.</p>
+<div id="scrape-logic-and-compensation-identities" class="section level3">
+<h3>Scrape logic and compensation identities</h3>
 <p>The workflow iterates over every page returned by Transparent
 California for each focused search term, parses the server-side HTML
 salary table, standardizes the pay fields, and writes the result to
 <code>data/raw/transparent_california/2024/</code>. The result of this
 script is a candidate pool and audit trail, not a final analytic cohort.
 Downstream scripts resolve search overlap, title filtering, priority
-rules, and deduplication. The core compensation identity used throughout
-the project is:</p>
+rules, and deduplication. This stage therefore separates planning
+artifacts from empirical outputs: the query registry and title reference
+guide the scrape, the raw per-query extracts document what was captured,
+and the combined candidate pool preserves intentional overlap so the
+cleaning audit can show exactly how cohort assignment later narrows the
+field. The core compensation identity used throughout the project
+is:</p>
 <ul>
 <li><code>total_pay = regular_pay + overtime_pay + other_pay</code></li>
 <li><code>total_pay_benefits = total_pay + benefits</code></li>
 </ul>
+<!-- 8. Setup and load packages -->
 </div>
-<div id="setup-and-load-packages" class="section level1">
-<h1>Setup and load packages</h1>
+</div>
+<div id="setup-and-load-packages" class="section level2">
+<h2>Setup and load packages</h2>
 <p>This section loads helper functions, packages, and project paths.</p>
 <pre class="r"><code>knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
@@ -1779,11 +1791,13 @@ title_reference_output &lt;- uc_salary_path(&quot;data&quot;, &quot;processed&qu
 uc_salary_ensure_directory(raw_year_directory)
 uc_salary_ensure_directory(dirname(manifest_output))
 uc_salary_ensure_directory(dirname(title_reference_output))</code></pre>
+<!-- 9. Validation -->
 </div>
-<div id="validation" class="section level1">
-<h1>Validation</h1>
-<p>This section validates the required source files and scrape
-configuration.</p>
+<div id="input-validation-for-the-focused-scrape" class="section level2">
+<h2>Input validation for the focused scrape</h2>
+<p>These checks confirm that the source-status metadata, query registry,
+and title reference needed to run the focused scrape are available
+before any requests are made.</p>
 <pre class="r"><code>query_registry &lt;- uc_salary_read_query_registry() %&gt;%
   dplyr::filter(analysis_year == !!analysis_year)
 
@@ -1840,11 +1854,21 @@ knitr::kable(validation_summary)</code></pre>
 </tr>
 </tbody>
 </table>
+<!-- 10. Importing data -->
 </div>
-<div id="importing-data" class="section level1">
-<h1>Importing data</h1>
+<div id="scrape-control-inputs-and-corpus-design-rules" class="section level2">
+<h2>Scrape-control inputs and corpus-design rules</h2>
 <p>This section imports the manual reference files that control the
-scrape.</p>
+scrape. These are planning and corpus-design inputs, not empirical
+findings: they define which tractable cohorts the focused scrape will
+attempt and preserve the academic title reference that later scripts use
+as a partial join aid.</p>
+<div id="scrape-control-inputs" class="section level3">
+<h3>Scrape-control inputs</h3>
+<p>The table below is the design-control inventory for this stage. It
+shows which search terms are supposed to be run, how those searches are
+grouped analytically, and why those cohorts were chosen for the focused
+2024 scrape.</p>
 <pre class="r"><code>readr::write_csv(title_reference, title_reference_output)
 
 query_registry %&gt;%
@@ -1905,12 +1929,17 @@ assistant-to-chancellor and vice-chancellor rows.</td>
 </tr>
 </tbody>
 </table>
+<!-- 11. Processing data -->
 </div>
-<div id="processing-data" class="section level1">
-<h1>Processing data</h1>
+</div>
+<div id="construction-of-the-focused-candidate-pool-and-audit-manifest" class="section level2">
+<h2>Construction of the focused candidate pool and audit manifest</h2>
 <p>This section performs the focused 2024 scrape, writes one raw extract
 per query, and combines those raw extracts into a candidate pool that
-still contains intentional overlap across search terms.</p>
+still contains intentional overlap across search terms. The raw
+per-query files are the reproducibility layer for the scrape itself; the
+combined file is an upstream corpus-design artifact that shows what was
+captured before any cohort-resolution rules are applied.</p>
 <pre class="r"><code>scraped_query_results &lt;- purrr::pmap(
   query_registry %&gt;% dplyr::select(query_slug, search_term),
   function(query_slug, search_term) {
@@ -1959,18 +1988,19 @@ readr::write_csv(candidate_pool, candidate_pool_output)
 readr::write_csv(scrape_manifest, manifest_output)
 
 scrape_manifest %&gt;%
+  dplyr::mutate(raw_file = uc_salary_relpath(raw_file)) %&gt;%
   dplyr::arrange(desc(scraped_rows)) %&gt;%
   knitr::kable()</code></pre>
 <table>
 <colgroup>
-<col width="5%" />
-<col width="5%" />
-<col width="9%" />
-<col width="47%" />
-<col width="9%" />
-<col width="5%" />
-<col width="8%" />
-<col width="8%" />
+<col width="7%" />
+<col width="6%" />
+<col width="11%" />
+<col width="32%" />
+<col width="12%" />
+<col width="6%" />
+<col width="11%" />
+<col width="11%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -1989,7 +2019,7 @@ scrape_manifest %&gt;%
 <td align="right">2024</td>
 <td align="left">librarian</td>
 <td align="left">LIBRARIAN</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/raw/transparent_california/2024/tc_2024_librarian.csv</td>
+<td align="left">data/raw/transparent_california/2024/tc_2024_librarian.csv</td>
 <td align="right">502</td>
 <td align="right">502</td>
 <td align="right">11</td>
@@ -1999,7 +2029,7 @@ scrape_manifest %&gt;%
 <td align="right">2024</td>
 <td align="left">police</td>
 <td align="left">POLICE</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/raw/transparent_california/2024/tc_2024_police.csv</td>
+<td align="left">data/raw/transparent_california/2024/tc_2024_police.csv</td>
 <td align="right">462</td>
 <td align="right">462</td>
 <td align="right">10</td>
@@ -2009,7 +2039,7 @@ scrape_manifest %&gt;%
 <td align="right">2024</td>
 <td align="left">chancellor</td>
 <td align="left">CHAN</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/raw/transparent_california/2024/tc_2024_chancellor.csv</td>
+<td align="left">data/raw/transparent_california/2024/tc_2024_chancellor.csv</td>
 <td align="right">423</td>
 <td align="right">423</td>
 <td align="right">9</td>
@@ -2019,7 +2049,7 @@ scrape_manifest %&gt;%
 <td align="right">2024</td>
 <td align="left">uc_president</td>
 <td align="left">PRESIDENT OF THE UNIV</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/raw/transparent_california/2024/tc_2024_uc_president.csv</td>
+<td align="left">data/raw/transparent_california/2024/tc_2024_uc_president.csv</td>
 <td align="right">1</td>
 <td align="right">1</td>
 <td align="right">1</td>
@@ -2027,12 +2057,15 @@ scrape_manifest %&gt;%
 </tr>
 </tbody>
 </table>
+<!-- 12. Inspect data -->
 </div>
-<div id="inspect-data" class="section level1">
-<h1>Inspect data</h1>
+<div id="candidate-pool-status-before-classification" class="section level2">
+<h2>Candidate-pool status before classification</h2>
 <p>This section inspects the combined candidate pool before analytic
 classification so downstream users can see that these rows are still an
-upstream scrape artifact rather than a cleaned cohort file.</p>
+upstream scrape artifact rather than a cleaned cohort file. The counts
+below should therefore be read as overlapping scrape returns, not as
+final worker counts.</p>
 <pre class="r"><code>candidate_pool %&gt;%
   dplyr::count(query_slug, sort = TRUE) %&gt;%
   knitr::kable()</code></pre>
@@ -2062,13 +2095,16 @@ upstream scrape artifact rather than a cleaned cohort file.</p>
 </tr>
 </tbody>
 </table>
+<!-- 13. QA -->
 </div>
-<div id="qa" class="section level1">
-<h1>QA</h1>
+<div id="report-level-validation-checks" class="section level2">
+<h2>Report-level validation checks</h2>
 <p>This section checks whether each query scraped the number of rows
 reported by Transparent California and records whether the upstream
 candidate pool still contains overlapping keys that must be resolved
-downstream.</p>
+downstream. A nonzero overlap count is expected at this stage because
+the whole point of the candidate-pool design is to preserve ambiguous
+cases until the explicit classification audit in the next script.</p>
 <pre class="r"><code>duplicate_key_count &lt;- candidate_pool %&gt;%
   dplyr::count(employee_name_clean, job_title_clean, year, agency_clean) %&gt;%
   dplyr::filter(n &gt; 1) %&gt;%
@@ -2114,19 +2150,19 @@ counts</td>
 </tr>
 </tbody>
 </table>
+<!-- 14. Export clean data -->
 </div>
-<div id="export-clean-data" class="section level1">
-<h1>Export clean data</h1>
-<p>This section writes the candidate-pool outputs needed by the
-downstream cleaning and analysis documents, including the standardized
-academic title reference used later as a partial join aid rather than a
-universal UC staff title dictionary.</p>
+<div id="saved-tables-logs-and-upstream-artifacts" class="section level2">
+<h2>Saved tables, logs, and upstream artifacts</h2>
+<p>This artifact registry functions as a reproducibility appendix for
+the focused scrape. These files should be read as upstream scrape
+artifacts and audit logs, not as final empirical results.</p>
 <pre class="r"><code>export_paths &lt;- tibble::tibble(
   artifact = c(
-    &quot;Combined 2024 candidate pool&quot;,
-    &quot;2024 scrape manifest&quot;,
+    &quot;Focused 2024 candidate pool (upstream scrape artifact)&quot;,
+    &quot;2024 scrape manifest (query-level coverage log)&quot;,
     &quot;2024 scrape QA summary&quot;,
-    &quot;Standardized academic title reference&quot;
+    &quot;Standardized academic title reference (partial join aid)&quot;
   ),
   output_path = c(
     candidate_pool_output,
@@ -2136,11 +2172,13 @@ universal UC staff title dictionary.</p>
   )
 )
 
-knitr::kable(export_paths)</code></pre>
+export_paths %&gt;%
+  dplyr::mutate(output_path = uc_salary_relpath(output_path)) %&gt;%
+  knitr::kable()</code></pre>
 <table>
 <colgroup>
-<col width="25%" />
-<col width="75%" />
+<col width="48%" />
+<col width="51%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -2150,20 +2188,22 @@ knitr::kable(export_paths)</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">Combined 2024 candidate pool</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/processed/uc_salary_2024_candidate_pool.csv</td>
+<td align="left">Focused 2024 candidate pool (upstream scrape
+artifact)</td>
+<td align="left">data/processed/uc_salary_2024_candidate_pool.csv</td>
 </tr>
 <tr class="even">
-<td align="left">2024 scrape manifest</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/logs/qa/tc_scrape_manifest_2024.csv</td>
+<td align="left">2024 scrape manifest (query-level coverage log)</td>
+<td align="left">outputs/logs/qa/tc_scrape_manifest_2024.csv</td>
 </tr>
 <tr class="odd">
 <td align="left">2024 scrape QA summary</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/outputs/logs/qa/tc_scrape_qa_summary_2024.csv</td>
+<td align="left">outputs/logs/qa/tc_scrape_qa_summary_2024.csv</td>
 </tr>
 <tr class="even">
-<td align="left">Standardized academic title reference</td>
-<td align="left">/Users/rjdellinger/Documents/GitHub/uc-salary-scraper/data/processed/uc_academic_title_reference_standardized.csv</td>
+<td align="left">Standardized academic title reference (partial join
+aid)</td>
+<td align="left">data/processed/uc_academic_title_reference_standardized.csv</td>
 </tr>
 </tbody>
 </table>

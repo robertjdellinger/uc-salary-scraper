@@ -1,5 +1,5 @@
 ---
-title: "UC Police Spending Over Time"
+title: "UC Police Spending, 2011-2024: Annual and Cumulative Nominal Series"
 author: "Robert J. Dellinger"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 bibliography: "../references/uc_salary_sources.bib"
@@ -11,47 +11,39 @@ output:
     df_print: paged
 ---
 
-# Title
+<!-- 1. Title -->
+<!-- Rendered through the YAML title block above. -->
 
-This section states the title of the standalone police-spending workflow.
+<!-- 2. Name -->
+<!-- Rendered through the YAML author field above. -->
 
-UC Police Spending Over Time
+<!-- 3. Date -->
+<!-- Rendered through the YAML date field above. -->
 
-# Name
+<!-- 4. Objective -->
+<!-- 5. Source -->
+<!-- 6. Source documentation and information -->
+<!-- 7. Methods, including equations and conceptual definitions -->
 
-This section identifies the analyst responsible for this workflow.
+This report is the repository's person-level UC police annual panel. It traces nominal annual and cumulative spending from the first available Transparent California University of California year through the latest available `2024` year and keeps the person-level police cohort separate from the title-summary estimate workflows elsewhere in the repository.
 
-Robert J. Dellinger
+> Interpretive note: the current Transparent California University of California page is `2024`, but it remains labeled `Data Collection in Progress` [@transparentcalifornia_uc_2024_progress_2026]. This report therefore treats `2024` as the latest available University of California year rather than a finalized census, uses person-level annual sums rather than pooled multi-year averages, and treats `total_pay` as the primary long-run series because reported benefits are zero in the earliest years.
 
-# Date
-
-This section records the run date for the police-spending workflow.
-
-`r format(Sys.Date(), "%B %d, %Y")`
-
-# Objective
-
-This section explains the purpose of the police-spending workflow before any code runs.
+## Panel overview
 
 The objective is to build a publication-quality, reusable University of California police-spending series that shows how annual and cumulative police salary spending changed from the first available Transparent California UC year through the latest available UC salary year in the public Transparent California database.
 
-# Source
+### Source basis
 
-This section names the source used for the police-spending workflow and clarifies the time window.
+The workflow uses Transparent California's University of California salary search database [@transparentcalifornia_uc_2026]. As of March 31, 2026, the current UC agency page is 2024 and that page is explicitly labeled "2024 Data Collection in Progress" [@transparentcalifornia_uc_2024_progress_2026]. This script intentionally uses the latest available 2024 UC records, including the in-progress 2024 page, so the series runs through 2024 rather than stopping at 2023. All core spending results in this report are person-level annual sums from the Transparent California police cohort after the title-based false-positive filter is applied.
 
-The workflow uses Transparent California's University of California salary search database [@transparentcalifornia_uc_2026]. As of March 31, 2026, the current UC agency page is 2024 and that page is explicitly labeled "2024 Data Collection in Progress" [@transparentcalifornia_uc_2024_progress_2026]. This script intentionally uses the latest available 2024 UC records, including the in-progress 2024 page, so the series runs through 2024 rather than stopping at 2023.
+### Source documentation and cohort definition
 
-# Source documentation and information
+Transparent California exposes record-level pay components for each employee, including `regular_pay`, `overtime_pay`, `other_pay`, `total_pay`, `benefits`, and `total_pay_benefits`. Transparent California's FAQ states that these values are annual amounts for the reported year, that some agencies report on a fiscal-year basis and some on a calendar-year basis, that benefit values reflect employer-paid benefit costs rather than take-home cash, and that the data are posted as supplied by reporting agencies. The public search can match names as well as job titles, so the workflow first scrapes the full yearly `POLICE` candidate pool and then keeps only rows whose cleaned job title literally contains `POLICE`. That title filter is used to remove false positives while preserving the police-titled workforce that organizers are usually trying to measure. Because the newest UC page is still marked in progress, the final year in this panel should be treated as the latest available snapshot rather than a frozen final census. In the current UC police series, the 2011 and 2012 rows report zero benefits in aggregate, so the primary long-run series uses `total_pay` as the most consistent salary-spending measure and treats `total_pay_benefits` as a secondary employer-compensation measure.
 
-This section summarizes the source fields, interpretation limits, and why the police cohort is defined the way it is.
+### Spending logic and estimands
 
-Transparent California exposes record-level pay components for each employee, including `regular_pay`, `overtime_pay`, `other_pay`, `total_pay`, `benefits`, and `total_pay_benefits`. Transparent California's FAQ states that these values are annual amounts for the reported year, that some agencies report on a fiscal-year basis and some on a calendar-year basis, that benefit values reflect employer-paid benefit costs rather than take-home cash, and that the data are posted as supplied by reporting agencies. The public search can match names as well as job titles, so the workflow first scrapes the full yearly `POLICE` candidate pool and then keeps only rows whose cleaned job title literally contains `POLICE`. That title filter is used to remove false positives while preserving the police-titled workforce that organizers are usually trying to measure. Because the 2024 UC page is still marked in progress, the newest year in this police series should be treated as the latest available snapshot rather than a frozen final census. In the current UC police series, the 2011 and 2012 rows report zero benefits in aggregate, so the primary long-run series uses `total_pay` as the most consistent salary-spending measure and treats `total_pay_benefits` as a secondary employer-compensation measure. The resulting totals are nominal dollars, not inflation-adjusted dollars, so the time series should be interpreted as administrative spending growth rather than real purchasing-power growth.
-
-# Methods, including equations and conceptual definitions
-
-This section explains the spending definitions and analytic logic before the code executes.
-
-The workflow builds a year-by-year police dataset and then summarizes both annual and cumulative spending. The key measures are:
+The workflow builds a year-by-year police dataset and then summarizes both annual and cumulative spending. This is an annual panel design, not a pooled multi-year average. The resulting totals are nominal dollars, not inflation-adjusted dollars, so the time series should be interpreted as administrative spending growth rather than real purchasing-power growth. The key measures are:
 
 - `annual_total_pay_y = Σ total_pay_i`
 - `annual_total_pay_benefits_y = Σ total_pay_benefits_i`
@@ -63,11 +55,13 @@ The report also tracks the overtime share of police payroll because overtime is 
 
 - `overtime_share_of_total_pay_y = annual_overtime_pay_y / annual_total_pay_y`
 
-# Setup and load packages
+<!-- 8. Setup and load packages -->
+
+## Setup and load packages
 
 This section loads helper functions, packages, and project paths.
 
-```{r setup-and-load-packages}
+```{r setup-police-series}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 utility_path <- if (file.exists("scripts/functions/uc_salary_utils.R")) {
@@ -99,11 +93,13 @@ uc_salary_ensure_directory(dirname(annual_output))
 uc_salary_ensure_directory(dirname(scrape_manifest_output))
 ```
 
-# Validation
+<!-- 9. Validation -->
 
-This section validates the date cutoff and confirms that the latest-available analysis window is internally consistent before scraping begins.
+## Time-window validation for the police panel
 
-```{r validation}
+These checks confirm that the latest-available analysis window is internally consistent before the script begins scraping or reusing yearly police extracts.
+
+```{r validate-police-series-window}
 stopifnot(!is.na(analysis_end_year))
 stopifnot(analysis_end_year >= analysis_start_year)
 stopifnot(length(analysis_years) > 0)
@@ -128,11 +124,13 @@ validation_summary <- tibble::tibble(
 knitr::kable(validation_summary)
 ```
 
-# Importing data
+<!-- 10. Importing data -->
 
-This section identifies which yearly police raw extracts already exist locally and which years will be scraped from Transparent California on this run.
+## Yearly source files entering the police panel
 
-```{r importing-data}
+This section identifies which yearly police raw extracts already exist locally and which years will be scraped from Transparent California on this run. The manifest below is an execution-planning artifact rather than an empirical result.
+
+```{r show-planned-police-inputs}
 planned_input_manifest <- tibble::tibble(
   year = analysis_years,
   raw_file = file.path(
@@ -143,14 +141,18 @@ planned_input_manifest <- tibble::tibble(
 ) %>%
   dplyr::mutate(raw_file_exists = file.exists(raw_file))
 
-knitr::kable(planned_input_manifest)
+planned_input_manifest %>%
+  dplyr::mutate(raw_file = uc_salary_relpath(raw_file)) %>%
+  knitr::kable()
 ```
 
-# Processing data
+<!-- 11. Processing data -->
 
-This section scrapes or reuses yearly police extracts, filters the analytic police cohort, summarizes annual and cumulative spending, and writes publication-ready graphics and tables.
+## Construction of annual and cumulative police spending series
 
-```{r processing-data}
+This section scrapes or reuses yearly police extracts, filters the analytic police cohort, summarizes annual and cumulative spending, and writes publication-ready graphics and tables. Analytically, it proceeds in four steps: building the yearly police candidate pool, applying the literal `POLICE` title filter, summarizing annual and cumulative nominal spending, and saving the tables and figures that represent the panel.
+
+```{r construct-police-series-and-save-figures}
 yearly_results <- purrr::map(
   analysis_years,
   function(year_value) {
@@ -294,18 +296,12 @@ plot_annual_salary_spending <- annual_spending %>%
   ggplot2::scale_x_continuous(breaks = analysis_years) +
   ggplot2::scale_y_continuous(
     labels = scales::label_dollar(scale_cut = scales::cut_short_scale()),
-    expand = ggplot2::expansion(mult = c(0, 0.10))
+    expand = ggplot2::expansion(mult = c(0, 0.14))
   ) +
   ggplot2::labs(
-    title = paste0(
-      "UC police salary spending climbed sharply across the available ",
-      analysis_start_year,
-      "-",
-      analysis_end_year,
-      " window"
-    ),
-    subtitle = paste0(
-      "Annual police salary spending rose by ",
+    title = uc_salary_wrap_text(paste0("Annual UC police total pay, ", analysis_start_year, "-", analysis_end_year), 62),
+    subtitle = uc_salary_wrap_text(paste0(
+      "Person-level nominal annual sums from Transparent California for UC job titles containing POLICE. Total pay rose by ",
       dollar_formatter(absolute_increase),
       " (",
       scales::label_percent(accuracy = 0.1)(percent_increase),
@@ -314,16 +310,16 @@ plot_annual_salary_spending <- annual_spending %>%
       " to ",
       analysis_end_year,
       "."
-    ),
+    ), 105),
     x = NULL,
     y = "Annual total pay",
-    caption = paste0(
-      "Person-level Transparent California nominal total-pay sums. The primary series uses total pay because benefits are zero in ",
+    caption = uc_salary_wrap_text(paste0(
+      "Source type: person-level Transparent California realized pay in nominal dollars. The primary series uses total pay because reported benefits are zero in ",
       paste(years_with_zero_benefits, collapse = " and "),
       ". ",
       analysis_end_year,
-      " is the latest available UC year, not a finalized census."
-    )
+      " is the latest available UC year and remains in progress."
+    ), 135)
   ) +
   uc_salary_theme()
 
@@ -349,7 +345,7 @@ plot_cumulative_spending <- cumulative_spending_long %>%
   ggplot2::scale_x_continuous(breaks = analysis_years) +
   ggplot2::scale_y_continuous(
     labels = scales::label_dollar(scale_cut = scales::cut_short_scale()),
-    expand = ggplot2::expansion(mult = c(0.02, 0.10))
+    expand = ggplot2::expansion(mult = c(0.02, 0.12))
   ) +
   ggplot2::scale_colour_manual(
     values = c(
@@ -358,24 +354,24 @@ plot_cumulative_spending <- cumulative_spending_long %>%
     )
   ) +
   ggplot2::labs(
-    title = paste0("Cumulative UC police salary spending passed $600 million by ", analysis_end_year),
-    subtitle = paste0(
-      "Cumulative total pay reached ",
+    title = uc_salary_wrap_text(paste0("Cumulative UC police spending, ", analysis_start_year, "-", analysis_end_year), 62),
+    subtitle = uc_salary_wrap_text(paste0(
+      "Cumulative nominal total pay reached ",
       dollar_formatter(ending_cumulative_pay),
       " by ",
       analysis_end_year,
-      "; the higher compensation line adds benefits where Transparent California reports them."
-    ),
+      "; the second line adds reported employer-paid benefits where Transparent California records them."
+    ), 105),
     x = NULL,
     y = "Cumulative dollars",
     colour = NULL,
-    caption = paste0(
-      "Person-level Transparent California nominal-dollar cumulative sums. Benefits are zero in ",
+    caption = uc_salary_wrap_text(paste0(
+      "Source type: person-level Transparent California annual sums accumulated over time in nominal dollars. Benefits are zero in ",
       paste(years_with_zero_benefits, collapse = " and "),
       ". The ",
       analysis_end_year,
       " endpoint is the latest available UC year and may change while 2024 collection remains in progress."
-    )
+    ), 135)
   ) +
   uc_salary_theme()
 
@@ -392,25 +388,25 @@ plot_component_mix <- component_spending %>%
   ) +
   ggplot2::scale_y_continuous(
     labels = scales::label_dollar(scale_cut = scales::cut_short_scale()),
-    expand = ggplot2::expansion(mult = c(0, 0.04))
+    expand = ggplot2::expansion(mult = c(0, 0.07))
   ) +
   ggplot2::labs(
-    title = "Overtime materially expands the UC police payroll bill",
-    subtitle = paste0(
-      "Stacked nominal annual totals show how regular pay, overtime, other pay, and reported benefits combined from ",
+    title = uc_salary_wrap_text(paste0("Annual UC police pay components, ", analysis_start_year, "-", analysis_end_year), 62),
+    subtitle = uc_salary_wrap_text(paste0(
+      "Stacked nominal annual sums show regular pay, overtime pay, other pay, and reported employer-paid benefits for UC job titles containing POLICE from ",
       analysis_start_year,
       " through ",
       analysis_end_year,
       "."
-    ),
+    ), 105),
     x = NULL,
     y = "Annual dollars",
     fill = NULL,
-    caption = paste0(
-      "Person-level Transparent California annual sums in nominal dollars for UC job titles containing POLICE. Reported benefits are zero in ",
+    caption = uc_salary_wrap_text(paste0(
+      "Source type: person-level Transparent California annual sums in nominal dollars for UC job titles containing POLICE. Reported benefits are employer-paid costs and are zero in ",
       paste(years_with_zero_benefits, collapse = " and "),
       "."
-    )
+    ), 135)
   ) +
   uc_salary_theme()
 
@@ -421,9 +417,9 @@ figure_manifest <- tibble::tibble(
     "Annual police pay-component mix"
   ),
   output_path = c(
-    uc_salary_save_plot(plot_annual_salary_spending, paste0(series_stub, "_annual_salary_spending.png"), width = 12.5, height = 8),
-    uc_salary_save_plot(plot_cumulative_spending, paste0(series_stub, "_cumulative_salary_spending.png"), width = 12.5, height = 8),
-    uc_salary_save_plot(plot_component_mix, paste0(series_stub, "_annual_component_mix.png"))
+    uc_salary_save_plot(plot_annual_salary_spending, paste0(series_stub, "_annual_salary_spending.png"), width = 13, height = 8.5),
+    uc_salary_save_plot(plot_cumulative_spending, paste0(series_stub, "_cumulative_salary_spending.png"), width = 13, height = 8.5),
+    uc_salary_save_plot(plot_component_mix, paste0(series_stub, "_annual_component_mix.png"), width = 12, height = 7.5)
   )
 )
 
@@ -435,11 +431,17 @@ readr::write_csv(scrape_manifest, scrape_manifest_output)
 readr::write_csv(figure_manifest, figure_manifest_output)
 ```
 
-# Inspect data
+<!-- 12. Inspect data -->
 
-This section reviews the annual totals and role-group summaries before the final QA checks.
+## Final police spending tables and figures
 
-```{r inspect-data}
+This section reviews the annual totals and role-group summaries before the final QA checks, then renders the saved figures inline so the HTML report shows the empirical police series directly.
+
+### Annual and role-group tables
+
+These tables are the tabular backbone for the figures that follow: annual totals establish the nominal panel, and the role-group table shows how the police cohort is internally structured across years.
+
+```{r inspect-police-series-tables}
 annual_spending %>%
   dplyr::select(
     year,
@@ -454,14 +456,45 @@ annual_spending %>%
 
 role_spending %>%
   dplyr::arrange(year, police_role_group) %>%
+  dplyr::select(year, police_role_group, workers, total_pay, total_pay_benefits, median_total_pay_benefits) %>%
   knitr::kable()
 ```
 
-# QA
+### Rendered figures by estimand
 
-This section checks scrape completeness, annual coverage, and whether the expected output files were written successfully.
+The figures below are the same outputs written to `outputs/figures/`, rendered inline so the HTML report can be read as the main public-facing product.
 
-```{r qa}
+### Annual total-pay series
+
+This figure is the primary long-run police-spending series because it rests on the most consistent reported cash-pay field across all years in the panel.
+
+```{r render-police-annual-total-pay-figure, fig.width=13, fig.height=8.5}
+plot_annual_salary_spending
+```
+
+### Cumulative spending series
+
+This figure answers a different question than annual pay levels: it accumulates nominal spending over the full 2011-2024 period.
+
+```{r render-police-cumulative-spending-figure, fig.width=13, fig.height=8.5}
+plot_cumulative_spending
+```
+
+### Pay-component mix
+
+This figure shows how regular pay, overtime, other pay, and reported benefits combine inside the annual police payroll bill.
+
+```{r render-police-component-mix-figure, fig.width=12, fig.height=7.5}
+plot_component_mix
+```
+
+<!-- 13. QA -->
+
+## Report-level validation checks
+
+This section checks scrape completeness, annual coverage, and whether the expected output files were written successfully. Together these checks confirm that the annual panel is complete through the latest available year used in the report.
+
+```{r qa-police-series}
 qa_summary <- tibble::tibble(
   qa_metric = c(
     "Years analyzed",
@@ -491,20 +524,22 @@ qa_summary %>%
   knitr::kable()
 ```
 
-# Export clean data
+<!-- 14. Export clean data -->
 
-This section lists the processed datasets, tables, QA logs, and figures produced by the police-spending workflow.
+## Saved tables, figures, and report artifacts
 
-```{r export-clean-data}
+This artifact registry functions as a reproducibility appendix rather than a findings table. The labels distinguish the empirical police detail file from annual summary tables, execution logs, and exported figures.
+
+```{r list-police-series-artifacts}
 export_manifest <- dplyr::bind_rows(
   tibble::tibble(
     artifact = c(
-      "Police detail dataset",
+      "Police detail dataset (person-level annual panel)",
       "Annual police spending summary",
       "Annual police component summary",
       "Annual police role-group summary",
       "Police scrape manifest",
-      "Police QA summary",
+      "Police series QA summary",
       "Police figure manifest"
     ),
     output_path = c(
@@ -521,8 +556,14 @@ export_manifest <- dplyr::bind_rows(
     dplyr::rename(artifact = figure)
 )
 
-knitr::kable(export_manifest)
+export_manifest %>%
+  dplyr::mutate(output_path = uc_salary_relpath(output_path)) %>%
+  knitr::kable()
 ```
+
+## Closing interpretation
+
+This report shows a nominal annual panel of observed University of California police spending rather than an inflation-adjusted real-dollar trend or an average salary series. Its strongest headline results are the annual `total_pay` series and the cumulative spending totals, which answer related but different questions and should not be read as interchangeable measures.
 
 # Works Cited
 

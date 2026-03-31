@@ -1,5 +1,5 @@
 ---
-title: "Transparent California Focused Scrape for UC Salary Cohorts (2024)"
+title: "Focused 2024 Transparent California Scrape Audit for Tractable UC Cohorts"
 author: "Robert J. Dellinger"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
@@ -9,56 +9,50 @@ output:
     df_print: paged
 ---
 
-# Title
+<!-- 1. Title -->
+<!-- Rendered through the YAML title block above. -->
 
-This section states the document title for the scraping workflow.
+<!-- 2. Name -->
+<!-- Rendered through the YAML author field above. -->
 
-Transparent California Focused Scrape for UC Salary Cohorts (2024)
+<!-- 3. Date -->
+<!-- Rendered through the YAML date field above. -->
 
-# Name
+<!-- 4. Objective -->
+<!-- 5. Source -->
+<!-- 6. Source documentation and information -->
+<!-- 7. Methods, including equations and conceptual definitions -->
 
-This section identifies the analyst responsible for the scraping workflow.
+This report is the repository's focused 2024 scrape audit. It builds the upstream candidate pool and source-audit trail for tractable University of California cohorts, while making clear that the result is an auditable scrape artifact rather than a final cohort file or a census of all University of California employees.
 
-Robert J. Dellinger
+> Interpretive note: the current Transparent California University of California page is `2024`, but it remains labeled `Data Collection in Progress`. This report therefore treats `2024` as the latest available University of California year rather than a finalized census, and it treats the combined candidate pool as an upstream design artifact that still contains intentional overlap.
 
-# Date
+## Workflow overview
 
-This section records the run date for the scrape.
+The objective is to build a reproducible 2024 candidate-pool and source-audit trail for the latest available University of California salary records from Transparent California for worker groups that matter to organizing and pay-equity analysis. This document is intentionally a focused scrape audit rather than an exhaustive all-title census because the public UC search interface remains tractable only for a limited set of smaller cohorts.
 
-`r format(Sys.Date(), "%B %d, %Y")`
+### Source basis and tractability rule
 
-# Objective
+The primary source is Transparent California's University of California salary database. The scrape is restricted to 2024 and to cohorts whose public search results remain small enough to capture cleanly even though Transparent California still marks the 2024 UC database as in progress. The goal of this script is therefore to build an auditable upstream candidate pool for tractable cohorts, not to claim a full person-level University of California census or a final analytic cohort file.
 
-This section explains the purpose of the scraping workflow before any code runs.
+### Source documentation and corpus-design limits
 
-The objective is to build a reproducible 2024 candidate pool and source-audit trail for the latest available University of California salary records from Transparent California for worker groups that matter to organizing and pay-equity analysis. This document is intentionally a focused scrape audit rather than an exhaustive all-title census because the public UC search interface remains tractable only for a limited set of smaller cohorts.
+Transparent California's FAQ states that the values on the site are annual amounts for the reported year, that some agencies report on a fiscal-year basis and others on a calendar-year basis, that benefits reflect employer-paid costs rather than take-home cash, and that the platform relies on agency-reported public-record data. For University of California use in this repository, the scrape therefore treats `regular_pay`, `overtime_pay`, `other_pay`, `total_pay`, `benefits`, and `total_pay_benefits` as annual reported-year values rather than monthly or per-paycheck values. Search pages can match names as well as job titles, so the scrape intentionally builds broad candidate pools first and applies title-based cohort rules later in the cleaning report. Large academic and graduate-worker cohorts are not scraped exhaustively here because the public search interface becomes unstable or incomplete at deeper pagination depths; those cohorts are handled elsewhere in the repository through official UCOP scale benchmarks rather than pretending this scrape can fully recover them. The manual query registry used below is therefore a design-lock control file: it documents what the scrape is attempting and why, but it is not itself an empirical result.
 
-# Source
+### Scrape logic and compensation identities
 
-This section names the primary source and clarifies why the analysis is restricted to a focused set of cohorts.
-
-The primary source is Transparent California's University of California salary database. The scrape is restricted to 2024 and to cohorts whose public search results remain small enough to capture cleanly even though Transparent California still marks the 2024 UC database as in progress. The goal of this script is therefore to build an auditable candidate pool for tractable cohorts, not to claim a full person-level University of California census.
-
-# Source documentation and information
-
-This section documents the source behavior, fields, and interpretation limits that matter before scraping.
-
-Transparent California's FAQ states that the values on the site are annual amounts for the reported year, that some agencies report on a fiscal-year basis and others on a calendar-year basis, that benefits reflect employer-paid costs rather than take-home cash, and that the platform relies on agency-reported public-record data. For University of California use in this repository, the scrape therefore treats `regular_pay`, `overtime_pay`, `other_pay`, `total_pay`, `benefits`, and `total_pay_benefits` as annual reported-year values rather than monthly or per-paycheck values. Search pages can match names as well as job titles, so the scrape intentionally builds broad candidate pools first and applies title-based cohort rules later in the cleaning report. As of March 31, 2026, Transparent California has posted 2024 UC records but still labels the 2024 UC page as "Data Collection in Progress," so this script treats 2024 as the latest available year rather than a finalized census. Large academic and graduate-worker cohorts are not scraped exhaustively here because the public search interface becomes unstable or incomplete at deeper pagination depths; those cohorts are handled elsewhere in the repository through official UCOP scale benchmarks rather than pretending this scrape can fully recover them.
-
-# Methods, including equations and conceptual definitions
-
-This section explains the scraping logic and compensation definitions before the code executes.
-
-The workflow iterates over every page returned by Transparent California for each focused search term, parses the server-side HTML salary table, standardizes the pay fields, and writes the result to `data/raw/transparent_california/2024/`. The result of this script is a candidate pool and audit trail, not a final analytic cohort. Downstream scripts resolve search overlap, title filtering, priority rules, and deduplication. The core compensation identity used throughout the project is:
+The workflow iterates over every page returned by Transparent California for each focused search term, parses the server-side HTML salary table, standardizes the pay fields, and writes the result to `data/raw/transparent_california/2024/`. The result of this script is a candidate pool and audit trail, not a final analytic cohort. Downstream scripts resolve search overlap, title filtering, priority rules, and deduplication. This stage therefore separates planning artifacts from empirical outputs: the query registry and title reference guide the scrape, the raw per-query extracts document what was captured, and the combined candidate pool preserves intentional overlap so the cleaning audit can show exactly how cohort assignment later narrows the field. The core compensation identity used throughout the project is:
 
 - `total_pay = regular_pay + overtime_pay + other_pay`
 - `total_pay_benefits = total_pay + benefits`
 
-# Setup and load packages
+<!-- 8. Setup and load packages -->
+
+## Setup and load packages
 
 This section loads helper functions, packages, and project paths.
 
-```{r setup-and-load-packages}
+```{r setup-scrape-audit}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 utility_path <- if (file.exists("scripts/functions/uc_salary_utils.R")) {
@@ -83,11 +77,13 @@ uc_salary_ensure_directory(dirname(manifest_output))
 uc_salary_ensure_directory(dirname(title_reference_output))
 ```
 
-# Validation
+<!-- 9. Validation -->
 
-This section validates the required source files and scrape configuration.
+## Input validation for the focused scrape
 
-```{r validation}
+These checks confirm that the source-status metadata, query registry, and title reference needed to run the focused scrape are available before any requests are made.
+
+```{r validate-scrape-audit-inputs}
 query_registry <- uc_salary_read_query_registry() %>%
   dplyr::filter(analysis_year == !!analysis_year)
 
@@ -116,11 +112,17 @@ validation_summary <- tibble::tibble(
 knitr::kable(validation_summary)
 ```
 
-# Importing data
+<!-- 10. Importing data -->
 
-This section imports the manual reference files that control the scrape.
+## Scrape-control inputs and corpus-design rules
 
-```{r importing-data}
+This section imports the manual reference files that control the scrape. These are planning and corpus-design inputs, not empirical findings: they define which tractable cohorts the focused scrape will attempt and preserve the academic title reference that later scripts use as a partial join aid.
+
+### Scrape-control inputs
+
+The table below is the design-control inventory for this stage. It shows which search terms are supposed to be run, how those searches are grouped analytically, and why those cohorts were chosen for the focused 2024 scrape.
+
+```{r show-scrape-control-inputs}
 readr::write_csv(title_reference, title_reference_output)
 
 query_registry %>%
@@ -128,11 +130,13 @@ query_registry %>%
   knitr::kable()
 ```
 
-# Processing data
+<!-- 11. Processing data -->
 
-This section performs the focused 2024 scrape, writes one raw extract per query, and combines those raw extracts into a candidate pool that still contains intentional overlap across search terms.
+## Construction of the focused candidate pool and audit manifest
 
-```{r processing-data}
+This section performs the focused 2024 scrape, writes one raw extract per query, and combines those raw extracts into a candidate pool that still contains intentional overlap across search terms. The raw per-query files are the reproducibility layer for the scrape itself; the combined file is an upstream corpus-design artifact that shows what was captured before any cohort-resolution rules are applied.
+
+```{r build-focused-candidate-pool}
 scraped_query_results <- purrr::pmap(
   query_registry %>% dplyr::select(query_slug, search_term),
   function(query_slug, search_term) {
@@ -181,25 +185,30 @@ readr::write_csv(candidate_pool, candidate_pool_output)
 readr::write_csv(scrape_manifest, manifest_output)
 
 scrape_manifest %>%
+  dplyr::mutate(raw_file = uc_salary_relpath(raw_file)) %>%
   dplyr::arrange(desc(scraped_rows)) %>%
   knitr::kable()
 ```
 
-# Inspect data
+<!-- 12. Inspect data -->
 
-This section inspects the combined candidate pool before analytic classification so downstream users can see that these rows are still an upstream scrape artifact rather than a cleaned cohort file.
+## Candidate-pool status before classification
 
-```{r inspect-data}
+This section inspects the combined candidate pool before analytic classification so downstream users can see that these rows are still an upstream scrape artifact rather than a cleaned cohort file. The counts below should therefore be read as overlapping scrape returns, not as final worker counts.
+
+```{r inspect-candidate-pool-status}
 candidate_pool %>%
   dplyr::count(query_slug, sort = TRUE) %>%
   knitr::kable()
 ```
 
-# QA
+<!-- 13. QA -->
 
-This section checks whether each query scraped the number of rows reported by Transparent California and records whether the upstream candidate pool still contains overlapping keys that must be resolved downstream.
+## Report-level validation checks
 
-```{r qa}
+This section checks whether each query scraped the number of rows reported by Transparent California and records whether the upstream candidate pool still contains overlapping keys that must be resolved downstream. A nonzero overlap count is expected at this stage because the whole point of the candidate-pool design is to preserve ambiguous cases until the explicit classification audit in the next script.
+
+```{r qa-focused-scrape}
 duplicate_key_count <- candidate_pool %>%
   dplyr::count(employee_name_clean, job_title_clean, year, agency_clean) %>%
   dplyr::filter(n > 1) %>%
@@ -224,17 +233,19 @@ qa_summary %>%
   knitr::kable()
 ```
 
-# Export clean data
+<!-- 14. Export clean data -->
 
-This section writes the candidate-pool outputs needed by the downstream cleaning and analysis documents, including the standardized academic title reference used later as a partial join aid rather than a universal UC staff title dictionary.
+## Saved tables, logs, and upstream artifacts
 
-```{r export-clean-data}
+This artifact registry functions as a reproducibility appendix for the focused scrape. These files should be read as upstream scrape artifacts and audit logs, not as final empirical results.
+
+```{r list-scrape-artifacts}
 export_paths <- tibble::tibble(
   artifact = c(
-    "Combined 2024 candidate pool",
-    "2024 scrape manifest",
+    "Focused 2024 candidate pool (upstream scrape artifact)",
+    "2024 scrape manifest (query-level coverage log)",
     "2024 scrape QA summary",
-    "Standardized academic title reference"
+    "Standardized academic title reference (partial join aid)"
   ),
   output_path = c(
     candidate_pool_output,
@@ -244,5 +255,7 @@ export_paths <- tibble::tibble(
   )
 )
 
-knitr::kable(export_paths)
+export_paths %>%
+  dplyr::mutate(output_path = uc_salary_relpath(output_path)) %>%
+  knitr::kable()
 ```

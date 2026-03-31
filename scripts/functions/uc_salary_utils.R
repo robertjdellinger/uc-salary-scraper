@@ -58,9 +58,54 @@ uc_salary_path <- function(...) {
   file.path(uc_salary_project_root, ...)
 }
 
+uc_salary_relpath <- function(path) {
+  project_root <- normalizePath(uc_salary_project_root, winslash = "/", mustWork = FALSE)
+  project_root_prefix <- paste0(project_root, "/")
+
+  vapply(
+    as.character(path),
+    function(one_path) {
+      if (is.na(one_path) || identical(one_path, "")) {
+        return(NA_character_)
+      }
+
+      normalized_path <- normalizePath(one_path, winslash = "/", mustWork = FALSE)
+
+      if (identical(normalized_path, project_root)) {
+        return(".")
+      }
+
+      if (startsWith(normalized_path, project_root_prefix)) {
+        return(substring(normalized_path, nchar(project_root_prefix) + 1L))
+      }
+
+      normalized_path
+    },
+    character(1)
+  )
+}
+
 uc_salary_ensure_directory <- function(path) {
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   invisible(path)
+}
+
+uc_salary_wrap_text <- function(text, width = 100) {
+  if (is.null(text) || length(text) == 0) {
+    return(text)
+  }
+
+  vapply(
+    text,
+    function(one_text) {
+      if (is.na(one_text) || !nzchar(one_text)) {
+        return(one_text)
+      }
+
+      stringr::str_wrap(one_text, width = width)
+    },
+    character(1)
+  )
 }
 
 uc_salary_cache_is_current <- function(data_frame) {
@@ -551,20 +596,32 @@ uc_salary_join_title_reference <- function(analytic_data, title_reference) {
 }
 
 uc_salary_theme <- function() {
-  ggplot2::theme_minimal(base_size = 13, base_family = "Georgia") +
+  ggplot2::theme_minimal(base_size = 14, base_family = "Georgia") +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(face = "bold", size = 17, colour = "#1F2933"),
-      plot.subtitle = ggplot2::element_text(size = 11, colour = "#52606D"),
-      plot.caption = ggplot2::element_text(size = 9, colour = "#52606D", hjust = 0),
+      plot.title = ggplot2::element_text(face = "bold", size = 17.5, colour = "#1F2933", margin = ggplot2::margin(b = 8)),
+      plot.subtitle = ggplot2::element_text(size = 11.5, colour = "#52606D", lineheight = 1.15, margin = ggplot2::margin(b = 10)),
+      plot.caption = ggplot2::element_text(size = 9.5, colour = "#52606D", hjust = 0, lineheight = 1.1, margin = ggplot2::margin(t = 12)),
       plot.caption.position = "plot",
-      axis.title = ggplot2::element_text(face = "bold", colour = "#1F2933"),
-      axis.text = ggplot2::element_text(colour = "#243B53"),
-      legend.title = ggplot2::element_text(face = "bold"),
+      plot.title.position = "plot",
+      axis.title = ggplot2::element_text(face = "bold", size = 12.2, colour = "#1F2933"),
+      axis.text = ggplot2::element_text(size = 10.8, colour = "#243B53"),
+      axis.text.x = ggplot2::element_text(margin = ggplot2::margin(t = 6)),
+      axis.text.y = ggplot2::element_text(margin = ggplot2::margin(r = 6)),
+      legend.title = ggplot2::element_text(face = "bold", colour = "#1F2933"),
+      legend.text = ggplot2::element_text(colour = "#243B53"),
       legend.position = "bottom",
+      legend.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      legend.box.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      legend.key = ggplot2::element_rect(fill = "transparent", colour = NA),
+      legend.spacing.x = grid::unit(8, "pt"),
       panel.grid.minor = ggplot2::element_blank(),
       panel.grid.major.x = ggplot2::element_blank(),
-      plot.background = ggplot2::element_rect(fill = "#F8F5F0", colour = NA),
-      panel.background = ggplot2::element_rect(fill = "#F8F5F0", colour = NA)
+      panel.grid.major.y = ggplot2::element_line(colour = "#D9E2EC", linewidth = 0.35),
+      plot.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      panel.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      strip.background = ggplot2::element_rect(fill = "transparent", colour = NA),
+      strip.text = ggplot2::element_text(face = "bold", colour = "#1F2933"),
+      plot.margin = ggplot2::margin(16, 34, 20, 16)
     )
 }
 
@@ -572,13 +629,14 @@ uc_salary_palette <- c(
   "Executive leadership" = "#8B1E3F",
   "Faculty and instruction" = "#0B6E4F",
   "Professor benchmarks" = "#0B6E4F",
+  "Ladder-rank professor benchmarks" = "#0B6E4F",
   "Graduate workers" = "#33658A",
   "Postdoctoral scholars" = "#F26419",
   "Police" = "#3A506B",
   "Library workers" = "#6C757D"
 )
 
-uc_salary_save_plot <- function(plot_object, filename, width = 11, height = 7, dpi = 320) {
+uc_salary_save_plot <- function(plot_object, filename, width = 11.5, height = 7.5, dpi = 320) {
   output_path <- uc_salary_path("outputs", "figures", filename)
   uc_salary_ensure_directory(dirname(output_path))
 
@@ -588,7 +646,7 @@ uc_salary_save_plot <- function(plot_object, filename, width = 11, height = 7, d
     width = width,
     height = height,
     dpi = dpi,
-    bg = "#F8F5F0"
+    bg = "transparent"
   )
 
   invisible(output_path)

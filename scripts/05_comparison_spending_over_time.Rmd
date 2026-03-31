@@ -1,5 +1,5 @@
 ---
-title: "UC Police and Librarian Payroll Comparison Over Time"
+title: "UC Police versus Librarian Payroll, 2011-2024: Title-Summary Estimate Comparison"
 author: "Robert J. Dellinger"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 bibliography: "../references/uc_salary_sources.bib"
@@ -11,45 +11,37 @@ output:
     df_print: paged
 ---
 
-# Title
+<!-- 1. Title -->
+<!-- Rendered through the YAML title block above. -->
 
-This section states the title of the standalone police-versus-librarian payroll workflow.
+<!-- 2. Name -->
+<!-- Rendered through the YAML author field above. -->
 
-UC Police and Librarian Payroll Comparison Over Time
+<!-- 3. Date -->
+<!-- Rendered through the YAML date field above. -->
 
-# Name
+<!-- 4. Objective -->
+<!-- 5. Source -->
+<!-- 6. Source documentation and information -->
+<!-- 7. Methods, including equations and conceptual definitions -->
 
-This section identifies the analyst responsible for this workflow.
+This report is the repository's over-time police-versus-librarian comparison branch. It uses Transparent California University of California job-title-summary pages to reconstruct annual payroll estimates for broad police and librarian title-series cohorts, then checks the police estimate branch against the exact person-level police series produced elsewhere in the repository.
 
-Robert J. Dellinger
+> Interpretive note: this report is built from Transparent California title-summary pages, not person-level payroll records [@transparentcalifornia_uc_job_title_summary_2026]. Its headline totals are reconstructed annual payroll estimates in nominal dollars, not exact payroll transactions or staffing counts, and the latest `2024` year remains a latest-available snapshot rather than a finalized University of California census [@transparentcalifornia_uc_2024_progress_2026].
 
-# Date
-
-This section records the run date for the workflow.
-
-`r format(Sys.Date(), "%B %d, %Y")`
-
-# Objective
-
-This section explains the purpose of the workflow before any code runs.
+## Comparison overview
 
 The objective is to build a publication-quality, reusable University of California over-time comparison between police payroll and broad librarian-series payroll using reconstructed annual payroll estimates from the public Transparent California job-title summary pages and the repository's documented librarian title crosswalk.
 
-# Source
+### Source basis
 
-This section names the source materials used in the workflow.
+The workflow uses Transparent California's annual University of California job-title summary pages for `2011-2024` [@transparentcalifornia_uc_2026; @transparentcalifornia_uc_job_title_summary_2026], the latest-available 2024 University of California agency page that is still marked in progress [@transparentcalifornia_uc_2024_progress_2026], the exact police person-level series produced elsewhere in this repository for validation [@transparentcalifornia_uc_2026], and the repository's cleaned 2024 librarian title crosswalk to audit current librarian title strings against the title matches already validated in the person-level workflow. The title-summary source and the police validation source remain analytically distinct throughout the report.
 
-The workflow uses Transparent California's annual University of California job-title summary pages for `2011-2024` [@transparentcalifornia_uc_2026; @transparentcalifornia_uc_job_title_summary_2026], the latest-available 2024 University of California agency page that is still marked in progress [@transparentcalifornia_uc_2024_progress_2026], the exact police person-level series produced elsewhere in this repository for validation [@transparentcalifornia_uc_2026], and the repository's cleaned 2024 librarian title crosswalk to audit current librarian title strings against the title matches already validated in the person-level workflow.
+### Source documentation and cohort definition
 
-# Source documentation and information
+Transparent California's job-title summary pages report `Count`, `Avg Regular pay`, `Avg Overtime pay`, `Avg Other pay`, `Avg Total pay`, `Avg Benefits`, and `Avg Total pay & benefits` for each title-year combination [@transparentcalifornia_uc_job_title_summary_2026]. Those pages also note that the averages are designed to capture only those who have worked a full year and that part-time, seasonal, and partial-year cases are excluded from those averages [@transparentcalifornia_uc_job_title_summary_2026]. Because of that note, this script treats title-summary payroll totals as reconstructed annual payroll estimates rather than exact audited payroll sums. The librarian side of the comparison is defined as a broad librarian-series cohort built from observed title-summary strings that contain `LIBRARIAN`, including university, law, associate, assistant, career, potential-career, non-represented, temporary, and visiting librarian titles. The repository's 2024 librarian crosswalk is used only as an audit aid for current title matching, while the actual over-time inclusion rule is the explicit title crosswalk written by this script. The resulting over-time figures are nominal dollars, not inflation-adjusted dollars.
 
-This section summarizes the source fields, cohort-definition rules, and interpretation limits that matter for the workflow.
-
-Transparent California's job-title summary pages report `Count`, `Avg Regular pay`, `Avg Overtime pay`, `Avg Other pay`, `Avg Total pay`, `Avg Benefits`, and `Avg Total pay & benefits` for each title-year combination [@transparentcalifornia_uc_job_title_summary_2026]. Those pages also note that the averages are designed to capture full-year employees and exclude part-time, seasonal, and partial-year workers [@transparentcalifornia_uc_job_title_summary_2026]. Because of that note, this script treats title-summary payroll totals as reconstructed annual payroll estimates rather than exact audited payroll sums. The librarian side of the comparison is defined as a broad librarian-series cohort built from observed title-summary strings that contain `LIBRARIAN`, including university, law, associate, assistant, career, potential-career, non-represented, temporary, and visiting librarian titles. The repository's 2024 librarian crosswalk is used only as an audit aid for current title matching, while the actual over-time inclusion rule is the explicit title crosswalk written by this script. The resulting over-time figures are nominal dollars, not inflation-adjusted dollars, and the newest year should still be read as the latest available 2024 snapshot rather than a finalized University of California census [@transparentcalifornia_uc_2024_progress_2026].
-
-# Methods, including equations and conceptual definitions
-
-This section explains the core estimation and validation logic before the code executes.
+### Estimation and validation logic
 
 The workflow treats each year as a separate repeated cross-section rather than averaging workers across years. For each title `t` in year `y`, the title-summary pages provide a worker count and an average compensation value. The workflow therefore constructs estimated annual payroll by title and then sums those title-level estimates within each cohort:
 
@@ -59,13 +51,15 @@ The workflow treats each year as a separate repeated cross-section rather than a
 - `librarian_payroll_multiple_of_police_y = estimated_librarian_total_pay_y / estimated_police_total_pay_y`
 - `average_librarian_payroll_equivalents_y = estimated_police_total_pay_y / weighted_mean_librarian_total_pay_y`
 
-Because the title-summary pages are not person-level payroll extracts, the workflow validates the police title-summary estimates against the exact police person-level totals from the repository's police series. Those validation gaps are reported directly and the librarian totals remain labeled as reconstructed annual payroll estimates rather than exact payroll totals.
+Because the title-summary pages are not person-level payroll extracts, the workflow validates the police title-summary estimates against the exact police person-level totals from the repository's police series. Those validation gaps are reported directly and the librarian totals remain labeled as reconstructed annual payroll estimates rather than exact payroll totals. This makes the report a title-summary estimate comparison with a person-level validation layer, not a direct census of payroll transactions.
 
-# Setup and load packages
+<!-- 8. Setup and load packages -->
+
+## Setup and load packages
 
 This section loads helper functions, packages, and project paths.
 
-```{r setup-and-load-packages}
+```{r setup-title-summary-comparison}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 utility_path <- if (file.exists("scripts/functions/uc_salary_utils.R")) {
@@ -104,11 +98,13 @@ uc_salary_ensure_directory(dirname(title_group_output))
 uc_salary_ensure_directory(dirname(scrape_manifest_output))
 ```
 
-# Validation
+<!-- 9. Validation -->
 
-This section validates that the required inputs and the latest-available time window are in place before scraping begins.
+## Time-window and input validation for the title-summary comparison
 
-```{r validation}
+These checks matter because the title-summary estimate comparison is only defensible if the latest-available UC year is identified correctly, the exact police validation file exists, and the current librarian crosswalk is available as an audit aid.
+
+```{r validate-title-summary-comparison-inputs}
 stopifnot(!is.na(analysis_end_year))
 stopifnot(analysis_end_year >= analysis_start_year)
 stopifnot(length(analysis_years) > 0)
@@ -159,11 +155,17 @@ validation_summary <- tibble::tibble(
 knitr::kable(validation_summary)
 ```
 
-# Importing data
+<!-- 10. Importing data -->
 
-This section documents the planned yearly title-summary inputs and the broad librarian-series rule that defines the comparison cohort.
+## Title-summary inputs and librarian cohort rule
 
-```{r importing-data}
+This section documents the planned yearly title-summary inputs and the broad librarian-series rule that defines the comparison cohort. These objects are design and audit inputs: they explain what the over-time comparison will include before any annual payroll estimates are constructed.
+
+### Planned title-summary inputs and librarian inclusion rule
+
+The first table lists the yearly raw title-summary inputs. The second states the broad librarian-series rule. The third uses the 2024 crosswalk only as a current audit aid for observed librarian title matching.
+
+```{r show-title-summary-design-inputs}
 planned_input_manifest <- tibble::tibble(
   year = analysis_years,
   raw_file = file.path(
@@ -186,6 +188,7 @@ librarian_series_rules <- tibble::tibble(
 )
 
 planned_input_manifest %>%
+  dplyr::mutate(raw_file = uc_salary_relpath(raw_file)) %>%
   knitr::kable()
 
 librarian_series_rules %>%
@@ -196,11 +199,13 @@ current_librarian_title_reference %>%
   knitr::kable()
 ```
 
-# Processing data
+<!-- 11. Processing data -->
 
-This section scrapes or reuses yearly title-summary pages, defines the police and librarian cohorts, validates the title-summary police estimates against the exact police series, and writes publication-ready figures and tables.
+## Construction of annual payroll estimates and validation tables
 
-```{r processing-data}
+This section scrapes or reuses yearly title-summary pages, defines the police and librarian cohorts, validates the title-summary police estimates against the exact police series, and writes publication-ready figures and tables. Analytically, it proceeds in four steps: collecting yearly title-summary inputs, defining the librarian and police title-series cohorts, constructing annual payroll estimates, and attaching the exact police validation layer before exporting the figures and tables.
+
+```{r construct-title-summary-comparison-and-save-figures}
 yearly_title_summary_results <- purrr::map(
   analysis_years,
   function(year_value) {
@@ -451,23 +456,18 @@ plot_police_vs_librarian_payroll <- ggplot2::ggplot(
     show.legend = FALSE
   ) +
   ggplot2::scale_colour_manual(values = payroll_colour_map) +
-  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.14))) +
+  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.18))) +
   ggplot2::scale_y_continuous(
     labels = scales::label_dollar(scale_cut = scales::cut_short_scale()),
-    expand = ggplot2::expansion(mult = c(0.02, 0.08))
+    expand = ggplot2::expansion(mult = c(0.02, 0.10))
   ) +
   ggplot2::labs(
-    title = paste0(
-      "Estimated librarian payroll stayed above estimated police payroll, ",
-      analysis_start_year,
-      "-",
-      analysis_end_year
-    ),
-    subtitle = "Nominal annual totals use reconstructed Transparent California title-summary payroll estimates for broad police and librarian title-series cohorts.",
+    title = uc_salary_wrap_text(paste0("Estimated annual police and librarian payroll, ", analysis_start_year, "-", analysis_end_year), 62),
+    subtitle = uc_salary_wrap_text("Nominal annual payroll estimates reconstructed from Transparent California title counts x annual averages for broad police and librarian title-series cohorts.", 105),
     x = NULL,
     y = "Estimated annual total pay",
     colour = NULL,
-    caption = "Nominal annual payroll estimates reconstructed from Transparent California title counts × annual averages, not exact person-level payroll sums."
+    caption = uc_salary_wrap_text("Source type: Transparent California job-title-summary payroll estimates. These are reconstructed annual estimates, not exact person-level payroll totals.", 135)
   ) +
   uc_salary_theme() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
@@ -487,23 +487,18 @@ plot_police_payroll_share <- ggplot2::ggplot(
     show.legend = FALSE
   ) +
   ggplot2::scale_colour_manual(values = share_colour_map) +
-  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.14))) +
+  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.18))) +
   ggplot2::scale_y_continuous(
     labels = scales::label_percent(accuracy = 1),
-    expand = ggplot2::expansion(mult = c(0, 0.10))
+    expand = ggplot2::expansion(mult = c(0, 0.12))
   ) +
   ggplot2::labs(
-    title = paste0(
-      "Estimated police payroll stayed below estimated librarian payroll, ",
-      analysis_start_year,
-      "-",
-      analysis_end_year
-    ),
-    subtitle = glue::glue("The police-to-librarian payroll ratio ranged from about {min_share_label} to {max_share_label} and ended at {end_share_label} in {analysis_end_year}."),
+    title = uc_salary_wrap_text(paste0("Estimated police payroll as a share of estimated librarian payroll, ", analysis_start_year, "-", analysis_end_year), 62),
+    subtitle = uc_salary_wrap_text(glue::glue("The police-to-librarian payroll ratio ranged from about {min_share_label} to {max_share_label} and ended at {end_share_label} in {analysis_end_year}."), 105),
     x = NULL,
     y = "Police payroll share",
     colour = NULL,
-    caption = "Shares use nominal annual title-summary payroll estimates; police totals are also cross-checked against the exact person-level police series."
+    caption = uc_salary_wrap_text("Source type: title-summary payroll estimates in nominal dollars. Police estimates are cross-checked against the exact person-level police series elsewhere in the repository.", 135)
   ) +
   uc_salary_theme() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
@@ -523,20 +518,15 @@ plot_librarian_equivalent_payrolls <- ggplot2::ggplot(
     show.legend = FALSE
   ) +
   ggplot2::scale_colour_manual(values = equivalent_colour_map) +
-  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.14))) +
-  ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.10))) +
+  ggplot2::scale_x_continuous(breaks = analysis_years, expand = ggplot2::expansion(mult = c(0.01, 0.18))) +
+  ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, 0.12))) +
   ggplot2::labs(
-    title = paste0(
-      "Estimated annual police payroll equaled hundreds of\naverage librarian payrolls, ",
-      analysis_start_year,
-      "-",
-      analysis_end_year
-    ),
-    subtitle = "Equivalent payroll counts divide annual police estimated total pay by same-year weighted average librarian title-summary total pay.",
+    title = uc_salary_wrap_text(paste0("Estimated police payroll expressed as same-year average librarian payroll equivalents, ", analysis_start_year, "-", analysis_end_year), 62),
+    subtitle = uc_salary_wrap_text("Annual police estimated total pay divided by the same-year weighted mean librarian avg_total_pay from the title-summary pages.", 105),
     x = NULL,
     y = "Equivalent same-year average payrolls",
     colour = NULL,
-    caption = "Equivalent counts use nominal annual title-summary payroll estimates and do not represent authorized librarian FTEs or hiring plans."
+    caption = uc_salary_wrap_text("Interpret this as a payroll-equivalent ratio from title-summary estimates, not as librarian headcount, authorized positions, or hiring capacity.", 135)
   ) +
   uc_salary_theme() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
@@ -548,22 +538,29 @@ figure_manifest <- tibble::tibble(
     "Librarian payroll-equivalent counts for police payroll"
   ),
   output_path = c(
-    uc_salary_save_plot(plot_police_vs_librarian_payroll, paste0(series_stub, "_annual_estimated_payroll.png")),
-    uc_salary_save_plot(plot_police_payroll_share, paste0(series_stub, "_payroll_share.png")),
-    uc_salary_save_plot(plot_librarian_equivalent_payrolls, paste0(series_stub, "_librarian_equivalent_payrolls.png"))
+    uc_salary_save_plot(plot_police_vs_librarian_payroll, paste0(series_stub, "_annual_estimated_payroll.png"), width = 12.5, height = 8),
+    uc_salary_save_plot(plot_police_payroll_share, paste0(series_stub, "_payroll_share.png"), width = 12.5, height = 8),
+    uc_salary_save_plot(plot_librarian_equivalent_payrolls, paste0(series_stub, "_librarian_equivalent_payrolls.png"), width = 12.5, height = 8)
   )
 )
 
 readr::write_csv(figure_manifest, figure_manifest_output)
 ```
 
-# Inspect data
+<!-- 12. Inspect data -->
 
-This section reviews the finished annual comparison tables and the police-validation results before the report concludes.
+## Final estimate tables and figures
 
-```{r inspect-data}
+This section reviews the finished annual comparison tables and the police-validation results before the report concludes, then renders the saved figures inline so the HTML output shows the estimated series directly.
+
+### Annual estimated-series tables
+
+These tables show the annual title-summary payroll estimates and the police validation gaps that anchor the over-time comparison methodologically.
+
+```{r inspect-title-summary-comparison-tables}
 annual_summary %>%
   dplyr::filter(analysis_cohort %in% c("Police", "Librarians")) %>%
+  dplyr::select(year, analysis_cohort, workers, estimated_total_pay, estimated_total_pay_benefits, weighted_avg_total_pay) %>%
   dplyr::arrange(year, analysis_cohort) %>%
   knitr::kable()
 
@@ -572,11 +569,41 @@ police_validation %>%
   knitr::kable()
 ```
 
-# QA
+### Rendered figures by estimand
 
-This section records the main quality checks for title coverage, validation gaps, and figure creation.
+The figures below are the same outputs written to `outputs/figures/`, rendered inline so the report can be read as the primary interpretive document for the title-summary comparison workflow.
 
-```{r qa}
+### Estimated annual payroll comparison
+
+This figure is the headline over-time comparison. It remains carefully labeled as a title-summary estimate rather than a person-level payroll census.
+
+```{r render-estimated-payroll-comparison-figure, fig.width=12.5, fig.height=8}
+plot_police_vs_librarian_payroll
+```
+
+### Police payroll share of librarian payroll
+
+This figure expresses the same annual comparison as a ratio, which helps keep source type fixed while changing the estimand from total pay to payroll share.
+
+```{r render-payroll-share-figure, fig.width=12.5, fig.height=8}
+plot_police_payroll_share
+```
+
+### Librarian payroll-equivalent interpretation
+
+This figure translates police payroll into same-year average librarian payroll equivalents. It is interpretive, but it still rests on the same reconstructed nominal payroll estimates.
+
+```{r render-librarian-equivalent-figure, fig.width=12.5, fig.height=8}
+plot_librarian_equivalent_payrolls
+```
+
+<!-- 13. QA -->
+
+## Report-level validation checks
+
+This section records the main quality checks for title coverage, validation gaps, and figure creation. Together these checks show whether the title-summary comparison remained internally consistent and whether the police validation layer stayed within expected bounds.
+
+```{r qa-title-summary-comparison}
 qa_summary <- tibble::tibble(
   qa_metric = c(
     "Years analyzed",
@@ -606,22 +633,24 @@ qa_summary %>%
   knitr::kable()
 ```
 
-# Export clean data
+<!-- 14. Export clean data -->
 
-This section lists the tables, logs, and figures written by the workflow.
+## Saved tables, figures, and report artifacts
 
-```{r export-clean-data}
+This artifact registry functions as a reproducibility appendix rather than a findings table. The labels below distinguish title-summary estimate artifacts from the exact police validation table and the audit logs that explain the comparison design.
+
+```{r list-title-summary-comparison-artifacts}
 export_manifest <- dplyr::bind_rows(
   tibble::tibble(
     artifact = c(
-      "Processed title-summary detail",
-      "Librarian title-group reference",
-      "Annual comparison summary",
-      "Police-versus-librarian comparison summary",
-      "Police validation table",
-      "Scrape manifest",
-      "Figure manifest",
-      "QA summary"
+      "Processed title-summary detail for payroll estimation",
+      "Observed librarian title-group reference",
+      "Annual title-summary comparison summary",
+      "Police-versus-librarian estimated payroll summary",
+      "Police estimate-versus-exact validation table",
+      "Title-summary scrape manifest",
+      "Title-summary figure manifest",
+      "Title-summary comparison QA summary"
     ),
     output_path = c(
       title_summary_detail_output,
@@ -638,8 +667,14 @@ export_manifest <- dplyr::bind_rows(
     dplyr::rename(artifact = figure)
 )
 
-knitr::kable(export_manifest)
+export_manifest %>%
+  dplyr::mutate(output_path = uc_salary_relpath(output_path)) %>%
+  knitr::kable()
 ```
+
+## Closing interpretation
+
+This report shows a title-summary estimate comparison, not a person-level census of payroll transactions. Its strongest headline contrasts are the annual police-versus-librarian payroll estimates and the police validation gaps that bound how those estimates should be interpreted.
 
 # Works Cited
 

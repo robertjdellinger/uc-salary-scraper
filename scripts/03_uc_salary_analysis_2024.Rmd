@@ -1,5 +1,5 @@
 ---
-title: "Publication-Quality UC Salary Analysis (2024)"
+title: "Latest-Available 2024 UC Salary Comparison: Observed Cohorts and Official Benchmarks"
 author: "Robert J. Dellinger"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 bibliography: "../references/uc_salary_sources.bib"
@@ -11,57 +11,51 @@ output:
     df_print: paged
 ---
 
-# Title
+<!-- 1. Title -->
+<!-- Rendered through the YAML title block above. -->
 
-This section states the final analysis title.
+<!-- 2. Name -->
+<!-- Rendered through the YAML author field above. -->
 
-Publication-Quality UC Salary Analysis (2024)
+<!-- 3. Date -->
+<!-- Rendered through the YAML date field above. -->
 
-# Name
+<!-- 4. Objective -->
+<!-- 5. Source -->
+<!-- 6. Source documentation and information -->
+<!-- 7. Methods, including equations and conceptual definitions -->
 
-This section identifies the analyst responsible for the report.
+This report is the repository's main public-facing 2024 cross-sectional comparison. It combines focused person-level Transparent California cohorts that remain tractable to scrape with official UCOP salary-scale tables that provide the more defensible benchmark source for large academic and graduate-worker title series.
 
-Robert J. Dellinger
+> Interpretive note: the current Transparent California University of California page is `2024`, but it remains labeled `Data Collection in Progress` [@transparentcalifornia_uc_2024_progress_2026]. This report therefore treats `2024` as the latest available University of California year rather than a finalized census, and it keeps observed person-level compensation, UCOP benchmark ranges, and mixed-source comparison layers analytically distinct.
 
-# Date
+## Analytic overview
 
-This section records the report date.
+The objective is to produce publication-quality, advocacy-ready salary analysis for the University of California that combines the latest available 2024 observed compensation for tractable person-level cohorts from Transparent California with official 2024-25 UCOP pay-scale benchmarks for graduate-worker, postdoctoral, and ladder-rank professor title series.
 
-`r format(Sys.Date(), "%B %d, %Y")`
+### Source basis
 
-# Objective
+The report uses the latest available 2024 person-level actual-pay cohorts scraped from Transparent California for police employees, librarians, chancellors, and the UC president [@transparentcalifornia_uc_2026; @transparentcalifornia_uc_2024_progress_2026], and official 2024-25 UCOP salary-scale tables for graduate workers, postdoctoral scholars, and ladder-rank professor benchmarks [@ucop_2024_scales_t18; @ucop_2024_scales_t22; @ucop_2024_scales_t23; @ucop_2024_scales_t1].
 
-This section explains the purpose of the report before any analysis code runs.
+### Source documentation and cohort design
 
-The objective is to produce publication-quality, advocacy-ready salary analysis for the University of California that combines the latest available 2024 actual-pay cohorts from Transparent California with official 2024-25 UCOP pay-scale benchmarks for graduate-worker, postdoctoral, and ladder-rank professor title series.
+Transparent California provides record-level pay components, which makes it useful for police and executive analysis, but the site still blocks deeper pagination on large academic and graduate-worker searches. Those larger cohorts are therefore represented here with official UCOP salary-scale tables rather than partial public-search results. In UCOP Table 18, `Group 1` covers campuses outside Berkeley, Los Angeles, and San Francisco, while `Group 2` covers Berkeley, Los Angeles, and San Francisco [@ucop_2024_scales_t18]. Table 22 and Table 23 are fiscal-year scales with explicit effective dates, while the professor benchmark remains an explicitly labeled ladder-rank academic salary-scale reference rather than realized pay [@ucop_2024_scales_t22; @ucop_2024_scales_t23; @ucop_2024_scales_t1]. This report collapses teaching assistant and teaching fellow rows into one broader `ASE instructional titles` benchmark for public-facing clarity while preserving the underlying `T018B` and `T018C` codes in the benchmark mapping table. Lecturer series are removed from the main comparison because the represented 2024 Unit 18 scales are analytically important but visually overwhelm the simpler cross-cohort comparison. The report continues to emphasize salary-plan codes such as `T001`, `T018B`, `T018C`, `T022`, and `T023` because those codes make the salary structures reusable for bargaining and organizing analysis [@ucop_2024_scales_t18; @ucop_2024_scales_t22; @ucop_2024_scales_t23; @ucop_2024_scales_t1].
 
-# Source
+### Comparison logic and estimands
 
-This section names the empirical and interpretive sources used in the report.
-
-The report uses the latest available 2024 actual-pay cohorts scraped from Transparent California for police employees, librarians, chancellors, and the UC president [@transparentcalifornia_uc_2026; @transparentcalifornia_uc_2024_progress_2026], and official 2024-25 UCOP salary-scale tables for graduate workers, postdoctoral scholars, and ladder-rank professor benchmarks [@ucop_2024_scales_t18; @ucop_2024_scales_t22; @ucop_2024_scales_t23; @ucop_2024_scales_t1].
-
-# Source documentation and information
-
-This section summarizes the source metadata, interpretation limits, and why specific cohorts were chosen.
-
-Transparent California provides record-level pay components, which makes it useful for police and executive analysis. The 2024 UC page is public but still marked as in progress, so the actual-pay results here should be read as the latest available 2024 records rather than a frozen final census [@transparentcalifornia_uc_2024_progress_2026]. The site still blocks deeper pagination on large academic and graduate-worker searches, so official UCOP salary-scale tables are used for those cohorts instead of partial public-search results. In UCOP Table 18, `Group 1` covers campuses outside Berkeley, Los Angeles, and San Francisco, while `Group 2` covers Berkeley, Los Angeles, and San Francisco [@ucop_2024_scales_t18]. This report collapses teaching assistant and teaching fellow rows into one broader `ASE instructional titles` benchmark for public-facing clarity while preserving the underlying `T018B` and `T018C` codes in the benchmark mapping table. Lecturer series are removed from the main comparison because the 2024 represented lecturer scales now run through long Unit 18 point ladders that are analytically important but visually overwhelm the simpler cross-cohort comparison. The report continues to emphasize salary-plan codes such as `T001`, `T018B`, `T018C`, `T022`, and `T023` because those codes make the salary structures reusable for bargaining and organizing analysis [@ucop_2024_scales_t18; @ucop_2024_scales_t22; @ucop_2024_scales_t23; @ucop_2024_scales_t1].
-
-# Methods, including equations and conceptual definitions
-
-This section explains the analytic logic before the code executes.
-
-The report uses median `total_pay_benefits` for actual Transparent California cohorts and annual salary-scale ranges for official UCOP benchmark cohorts. It also uses a Graduate Student Researcher floor benchmark:
+The report uses median `total_pay_benefits` for observed Transparent California cohorts and annual salary-scale ranges for official UCOP benchmark cohorts. These are different source types and different estimands: observed medians summarize realized person-level annual compensation, while benchmark ranges summarize official salary structures rather than realized pay. The report also uses a Graduate Student Researcher floor benchmark:
 
 - `ratio_to_gsr_floor = compensation_measure / 69,129`
 
 where `69,129` is the 2024-25 annual `T022 Grade 1, Increment 1` GSR scale [@ucop_2024_scales_t22].
 
-# Setup and load packages
+<!-- 8. Setup and load packages -->
+
+## Setup and load packages
 
 This section loads helper functions, packages, and file paths.
 
-```{r setup-and-load-packages}
+```{r setup-cross-sectional-report}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 utility_path <- if (file.exists("scripts/functions/uc_salary_utils.R")) {
@@ -93,11 +87,13 @@ lecturer_benchmark_exclusions <- c(
 )
 ```
 
-# Validation
+<!-- 9. Validation -->
 
-This section validates that the required actual-pay and benchmark inputs exist.
+## Input validation for the mixed-source comparison
 
-```{r validation}
+These checks matter because the report is only defensible if both the observed person-level cohort file and the benchmark file are present and populated before any aggregation begins.
+
+```{r validate-cross-sectional-inputs}
 stopifnot(file.exists(analytic_input))
 stopifnot(file.exists(benchmark_input))
 
@@ -125,11 +121,17 @@ validation_summary <- tibble::tibble(
 knitr::kable(validation_summary)
 ```
 
-# Importing data
+<!-- 10. Importing data -->
 
-This section imports the actual-pay and benchmark datasets used to build the final graphics and tables.
+## Observed cohorts and benchmark cohorts entering the comparison
 
-```{r importing-data}
+This section imports the observed actual-pay and benchmark datasets used to build the final graphics and tables. The tables below are scope checks rather than final interpretive outputs: they show which observed cohorts and benchmark cohorts enter the cross-sectional comparison before any aggregation occurs.
+
+### Scope tables before aggregation
+
+The first table shows the tractable person-level cohorts from the focused Transparent California scrape. The second table shows the UCOP benchmark cohorts that will be collapsed or retained in the final public-facing comparison.
+
+```{r show-cross-sectional-input-status}
 analytic_data %>%
   dplyr::count(cohort_group, analysis_cohort, sort = TRUE) %>%
   knitr::kable()
@@ -154,11 +156,13 @@ benchmark_data %>%
   knitr::kable()
 ```
 
-# Processing data
+<!-- 11. Processing data -->
 
-This section creates the summary tables and publication-quality graphics used in the report.
+## Construction of comparison tables and publication figures
 
-```{r processing-data}
+This section creates the summary tables and publication-quality graphics used in the report. Analytically, it moves through five steps: summarizing observed cohort medians, constructing grouped benchmark mappings, building the mixed-source comparison layer, isolating police cash-pay components, and saving the tables and figures that the report later renders inline.
+
+```{r construct-cross-sectional-tables-and-save-figures}
 actual_medians <- analytic_data %>%
   dplyr::group_by(cohort_group, analysis_cohort) %>%
   dplyr::summarise(
@@ -216,7 +220,7 @@ benchmark_ranges <- benchmark_data %>%
     .groups = "drop"
   ) %>%
   dplyr::mutate(
-    cohort_group = dplyr::recode(cohort_group, "Faculty and instruction" = "Professor benchmarks"),
+    cohort_group = dplyr::recode(cohort_group, "Faculty and instruction" = "Ladder-rank professor benchmarks"),
     ratio_low_to_gsr_floor = benchmark_low_annual / gsr_floor,
     ratio_high_to_gsr_floor = benchmark_high_annual / gsr_floor
   )
@@ -226,7 +230,7 @@ actual_vs_benchmark <- dplyr::bind_rows(
     dplyr::transmute(
       cohort_group,
       analysis_cohort,
-      measure_type = "Actual median total pay and benefits",
+      measure_type = "Observed median total pay and benefits",
       value_low = median_total_pay_benefits,
       value_high = median_total_pay_benefits,
       display_value = median_total_pay_benefits,
@@ -312,14 +316,14 @@ plot_actual_medians <- actual_medians %>%
     colour = "#1F2933"
   ) +
   ggplot2::scale_fill_manual(values = uc_salary_palette) +
-  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0, 0.18))) +
+  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0, 0.22))) +
   ggplot2::labs(
-    title = "Latest available 2024 actual-pay medians are highest for top UC leadership",
-    subtitle = "Police and librarians provide worker benchmarks from the focused UC cohorts currently visible in Transparent California.",
+    title = uc_salary_wrap_text("Observed 2024 UC compensation medians for focused Transparent California cohorts", 62),
+    subtitle = uc_salary_wrap_text("Person-level annual median total pay and benefits for the tractable cohorts captured in the focused 2024 scrape. The latest available 2024 UC page remains in progress.", 105),
     x = "Median total pay and benefits",
     y = NULL,
     fill = NULL,
-    caption = "Person-level Transparent California medians of annual total pay and benefits in nominal 2024 dollars. 2024 UC data collection remains in progress."
+    caption = uc_salary_wrap_text("Source type: person-level Transparent California realized compensation in nominal 2024 dollars. Benefits are employer-paid benefit costs, not take-home pay.", 135)
   ) +
   uc_salary_theme()
 
@@ -335,14 +339,14 @@ plot_benchmark_ranges <- benchmark_ranges %>%
   ggplot2::geom_point(ggplot2::aes(x = benchmark_low_annual), size = 2.6, colour = "#1F2933") +
   ggplot2::geom_point(ggplot2::aes(x = benchmark_high_annual), size = 2.6, colour = "#1F2933") +
   ggplot2::scale_colour_manual(values = uc_salary_palette[names(uc_salary_palette) %in% unique(benchmark_ranges$cohort_group)]) +
-  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0.02, 0.06))) +
+  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0.02, 0.08))) +
   ggplot2::labs(
-    title = "Official UC salary scales define a structural pay ladder across major UC cohorts",
-    subtitle = "Ranges show 2024-25 annual scale floors and ceilings for ASE instructional, GSR, postdoctoral, and ladder-rank professor benchmarks.",
+    title = uc_salary_wrap_text("Official 2024-25 UC salary-scale ranges for selected benchmark cohorts", 62),
+    subtitle = uc_salary_wrap_text("UCOP benchmark ranges for ASE instructional titles, graduate student researchers, postdoctoral scholars, and ladder-rank professor series.", 105),
     x = "Annual salary scale amount",
     y = NULL,
     colour = NULL,
-    caption = "Official 2024-25 UCOP salary-scale benchmarks, not realized pay. Source tables shown here: T018B/T018C, T022, T023, and T001."
+    caption = uc_salary_wrap_text("Source type: UCOP salary scales. These are official benchmark ranges, not observed realized pay. Tables shown here: T018B/T018C, T022, T023, and T001.", 135)
   ) +
   uc_salary_theme()
 
@@ -355,7 +359,7 @@ plot_actual_vs_benchmark <- ggplot2::ggplot(actual_vs_benchmark) +
     alpha = 0.8
   ) +
   ggplot2::geom_point(
-    data = dplyr::filter(actual_vs_benchmark, measure_type == "Actual median total pay and benefits"),
+    data = dplyr::filter(actual_vs_benchmark, measure_type == "Observed median total pay and benefits"),
     ggplot2::aes(y = analysis_cohort, x = display_value, fill = cohort_group),
     shape = 21,
     size = 4.2,
@@ -364,19 +368,19 @@ plot_actual_vs_benchmark <- ggplot2::ggplot(actual_vs_benchmark) +
   ) +
   ggplot2::scale_colour_manual(values = uc_salary_palette) +
   ggplot2::scale_fill_manual(values = uc_salary_palette) +
-  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0.02, 0.08))) +
+  ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0.02, 0.10))) +
   ggplot2::guides(
     colour = ggplot2::guide_legend(nrow = 2, byrow = TRUE),
     fill = ggplot2::guide_legend(nrow = 2, byrow = TRUE)
   ) +
   ggplot2::labs(
-    title = "Campus police median compensation exceeds\nmultiple academic salary-scale ranges",
-    subtitle = "Points show latest-available 2024 medians; line segments show official 2024-25 salary-scale ranges.\nThe ASE benchmark combines UCOP Table 18 TA and TF titles.",
-    x = "Annual compensation or salary-scale amount",
+    title = uc_salary_wrap_text("Observed 2024 compensation and official 2024-25 benchmark ranges", 62),
+    subtitle = uc_salary_wrap_text("Points are observed person-level median total pay and benefits; segments are official UCOP salary-scale ranges. The ASE benchmark combines Table 18 teaching assistant and teaching fellow titles.", 105),
+    x = "Annual amount",
     y = NULL,
     fill = NULL,
     colour = NULL,
-    caption = "Points are person-level Transparent California medians of annual total pay and benefits in nominal 2024 dollars; segments are official 2024-25 UCOP salary-scale benchmarks."
+    caption = uc_salary_wrap_text("Mixed-source comparison: person-level Transparent California realized compensation in nominal 2024 dollars versus UCOP benchmark salary scales. Source types are not interchangeable.", 135)
   ) +
   uc_salary_theme()
 
@@ -389,7 +393,7 @@ plot_ratio_to_gsr_floor <- ggplot2::ggplot(actual_vs_benchmark) +
     alpha = 0.8
   ) +
   ggplot2::geom_point(
-    data = dplyr::filter(actual_vs_benchmark, measure_type == "Actual median total pay and benefits"),
+    data = dplyr::filter(actual_vs_benchmark, measure_type == "Observed median total pay and benefits"),
     ggplot2::aes(y = analysis_cohort, x = ratio_high_to_gsr_floor, fill = cohort_group),
     shape = 21,
     size = 4.2,
@@ -399,19 +403,19 @@ plot_ratio_to_gsr_floor <- ggplot2::ggplot(actual_vs_benchmark) +
   ggplot2::geom_vline(xintercept = 1, linewidth = 0.8, linetype = "dashed", colour = "#7B8794") +
   ggplot2::scale_colour_manual(values = uc_salary_palette) +
   ggplot2::scale_fill_manual(values = uc_salary_palette) +
-  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.08))) +
+  ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = c(0.02, 0.10))) +
   ggplot2::guides(
     colour = ggplot2::guide_legend(nrow = 2, byrow = TRUE),
     fill = ggplot2::guide_legend(nrow = 2, byrow = TRUE)
   ) +
   ggplot2::labs(
-    title = "Relative to the GSR salary floor,\npolice and top executives sit far higher",
-    subtitle = "1.0 equals the 2024-25 GSR floor of $69,129 under UCOP Table 22.",
+    title = uc_salary_wrap_text("Observed 2024 compensation and benchmark ranges relative to the GSR floor", 62),
+    subtitle = uc_salary_wrap_text("The reference value 1.0 equals the 2024-25 Table 22 Graduate Student Researcher floor of $69,129.", 105),
     x = "Ratio to the GSR annual salary floor",
     y = NULL,
     fill = NULL,
     colour = NULL,
-    caption = "Benchmark ranges use official 2024-25 UCOP salary scales; points use person-level Transparent California medians in nominal 2024 dollars."
+    caption = uc_salary_wrap_text("Mixed-source ratio comparison. Points use observed person-level Transparent California medians in nominal 2024 dollars; segments use UCOP benchmark ranges.", 135)
   ) +
   uc_salary_theme()
 
@@ -420,12 +424,12 @@ plot_police_pay_components <- ggplot2::ggplot(police_pay_components, ggplot2::ae
   ggplot2::scale_fill_manual(values = c("Regular pay" = "#3E7CB1", "Overtime pay" = "#D1495B", "Other pay" = "#EDA247")) +
   ggplot2::scale_x_continuous(labels = scales::label_dollar(scale_cut = scales::cut_short_scale()), expand = ggplot2::expansion(mult = c(0, 0.05))) +
   ggplot2::labs(
-    title = "Police compensation is materially shaped by overtime",
-    subtitle = "Median pay components for police leadership/supervision versus police officers and other police titles.",
+    title = uc_salary_wrap_text("Observed 2024 police cash-pay components by police role group", 62),
+    subtitle = uc_salary_wrap_text("Person-level median regular pay, overtime pay, and other pay for police leadership/supervision versus police officers and other police titles.", 105),
     x = "Median pay component amount",
     y = NULL,
     fill = NULL,
-    caption = "Person-level Transparent California police medians in nominal 2024 dollars. Benefits are excluded so the internal composition of cash pay is easier to read."
+    caption = uc_salary_wrap_text("Source type: person-level Transparent California realized pay components in nominal 2024 dollars. Benefits are omitted so the cash-pay composition is easier to compare.", 135)
   ) +
   uc_salary_theme()
 
@@ -438,24 +442,31 @@ figure_manifest <- tibble::tibble(
     "Police pay components"
   ),
   output_path = c(
-    uc_salary_save_plot(plot_actual_medians, "uc_salary_2024_actual_medians.png"),
-    uc_salary_save_plot(plot_benchmark_ranges, "uc_salary_2024_benchmark_ranges.png", width = 12.5, height = 8),
-    uc_salary_save_plot(plot_actual_vs_benchmark, "uc_salary_2024_actual_vs_benchmark.png", width = 12.5, height = 8),
-    uc_salary_save_plot(plot_ratio_to_gsr_floor, "uc_salary_2024_ratio_to_gsr_floor.png", width = 12.5, height = 8),
-    uc_salary_save_plot(plot_police_pay_components, "uc_salary_2024_police_pay_components.png")
+    uc_salary_save_plot(plot_actual_medians, "uc_salary_2024_actual_medians.png", width = 12, height = 7.5),
+    uc_salary_save_plot(plot_benchmark_ranges, "uc_salary_2024_benchmark_ranges.png", width = 13, height = 8.5),
+    uc_salary_save_plot(plot_actual_vs_benchmark, "uc_salary_2024_actual_vs_benchmark.png", width = 13, height = 8.5),
+    uc_salary_save_plot(plot_ratio_to_gsr_floor, "uc_salary_2024_ratio_to_gsr_floor.png", width = 13, height = 8.5),
+    uc_salary_save_plot(plot_police_pay_components, "uc_salary_2024_police_pay_components.png", width = 12, height = 7.5)
   )
 )
 
 readr::write_csv(figure_manifest, figure_manifest_output)
 ```
 
-# Inspect data
+<!-- 12. Inspect data -->
 
-This section reviews the finished summary tables that support the report narrative.
+## Final comparison tables and figures
 
-```{r inspect-data}
+This section reviews the finished summary tables that support the report narrative and then renders the saved figures inline so the HTML report itself functions as the main interpretive product rather than only a manifest of exported PNG files.
+
+### Summary result tables
+
+These tables show the two main source families that underpin the report: observed person-level medians and official benchmark ranges.
+
+```{r inspect-cross-sectional-summary-tables}
 actual_medians %>%
   dplyr::arrange(dplyr::desc(median_total_pay_benefits)) %>%
+  dplyr::select(analysis_cohort, workers, median_total_pay, median_total_pay_benefits) %>%
   knitr::kable()
 
 benchmark_ranges %>%
@@ -464,11 +475,57 @@ benchmark_ranges %>%
   knitr::kable()
 ```
 
-# QA
+### Rendered figures by estimand
 
-This section verifies that the report-level tables and figures were written successfully.
+The following subsections render the same figures that are written to `outputs/figures/`, so readers can review descriptive, structural, and mixed-source visuals in context.
 
-```{r qa}
+#### Observed realized-compensation medians
+
+This figure is the repository's observed-compensation entry point. It should be read strictly as a focused person-level cohort comparison from the latest available 2024 Transparent California UC page.
+
+```{r render-observed-actual-pay-figure, fig.width=12, fig.height=7.5}
+plot_actual_medians
+```
+
+#### Official benchmark salary scales
+
+This figure is the structural reference panel for bargaining and pay-scale interpretation. It summarizes official UCOP salary schedules rather than realized pay.
+
+```{r render-benchmark-range-figure, fig.width=13, fig.height=8.5}
+plot_benchmark_ranges
+```
+
+#### Mixed-source overlay of observed medians and benchmark ranges
+
+This mixed-source figure is the core comparison output. It is only defensible because the point and segment layers remain explicitly labeled as different source types and different estimands.
+
+```{r render-actual-vs-benchmark-figure, fig.width=13, fig.height=8.5}
+plot_actual_vs_benchmark
+```
+
+#### Mixed-source ratios to the GSR floor
+
+This figure turns the same comparison into a scale-relative view anchored to the official Graduate Student Researcher floor under Table 22.
+
+```{r render-ratio-to-gsr-floor-figure, fig.width=13, fig.height=8.5}
+plot_ratio_to_gsr_floor
+```
+
+#### Police cash-pay composition
+
+This figure stays within the person-level Transparent California police cohort and breaks out the main cash-pay components before employer-paid benefits are added back in.
+
+```{r render-police-pay-components-figure, fig.width=12, fig.height=7.5}
+plot_police_pay_components
+```
+
+<!-- 13. QA -->
+
+## Report-level validation checks
+
+This section verifies that the report-level tables and figures were written successfully and that the mixed-source comparison still rests on the expected observed cohorts, benchmark cohorts, and GSR reference value.
+
+```{r qa-cross-sectional-report}
 report_qa_summary <- tibble::tibble(
   qa_metric = c(
     "Figures written",
@@ -494,21 +551,23 @@ report_qa_summary %>%
   knitr::kable()
 ```
 
-# Export clean data
+<!-- 14. Export clean data -->
 
-This section lists the publication-ready tables and figures written by the report.
+## Saved tables, figures, and report artifacts
 
-```{r export-clean-data}
+This artifact registry functions as a reproducibility appendix rather than a findings table. The labels below distinguish observed-compensation outputs from benchmark outputs and from mixed-source comparison outputs.
+
+```{r list-cross-sectional-artifacts}
 export_manifest <- dplyr::bind_rows(
   tibble::tibble(
     artifact = c(
-      "Actual median compensation table",
-      "Benchmark range table",
-      "Benchmark mapping table",
-      "Actual versus benchmark comparison table",
-      "Police pay component table",
-      "Figure manifest",
-      "Analysis QA summary"
+      "Observed 2024 actual-pay median table",
+      "Official 2024-25 benchmark range table",
+      "Official benchmark mapping table",
+      "Observed-versus-benchmark comparison table",
+      "Observed 2024 police pay-component table",
+      "Cross-sectional figure manifest",
+      "Cross-sectional report QA summary"
     ),
     output_path = c(
       actual_table_output,
@@ -524,8 +583,14 @@ export_manifest <- dplyr::bind_rows(
     dplyr::rename(artifact = figure)
 )
 
-knitr::kable(export_manifest)
+export_manifest %>%
+  dplyr::mutate(output_path = uc_salary_relpath(output_path)) %>%
+  knitr::kable()
 ```
+
+## Closing interpretation
+
+This report combines latest-available `2024` observed person-level compensation for focused, tractable University of California cohorts with official `2024-25` UC salary scales for larger academic title series. Those measures answer related but different questions, so the strongest headline contrasts in this report should be read as a mixed-source comparison between realized compensation and benchmark salary structures rather than as direct like-for-like pay equivalence.
 
 # Works Cited
 

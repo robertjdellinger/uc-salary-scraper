@@ -1,7 +1,7 @@
 cohort_group,analysis_cohort,source_table,salary_plan_or_grade,range_label,benchmark_low_annual,benchmark_high_annual,benchmark_low_monthly,benchmark_high_monthly,ratio_low_to_gsr_floor,ratio_high_to_gsr_floor
-Professor benchmarks,Assistant professors,Table 1,T001 Grade 3,Step 1 to 6,78200,101400,6516.67,8450,1.1312184466721635,1.4668228963242633
-Professor benchmarks,Associate professors,Table 1,T001 Grade 2,Step 1 to 5,96500,121600,8041.67,10133.33,1.395940922044294,1.7590302188661777
-Professor benchmarks,Professors,Table 1,T001 Grade 1,Step 1 to 9,112900,205400,9408.33,17116.67,1.6331785502466403,2.9712566361440205
+Ladder-rank professor benchmarks,Assistant professors,Table 1,T001 Grade 3,Step 1 to 6,78200,101400,6516.67,8450,1.1312184466721635,1.4668228963242633
+Ladder-rank professor benchmarks,Associate professors,Table 1,T001 Grade 2,Step 1 to 5,96500,121600,8041.67,10133.33,1.395940922044294,1.7590302188661777
+Ladder-rank professor benchmarks,Professors,Table 1,T001 Grade 1,Step 1 to 9,112900,205400,9408.33,17116.67,1.6331785502466403,2.9712566361440205
 Graduate workers,ASE instructional titles,Table 18,T18B Grade 1 + T18B Grade 2 + T18C Grade 1 + T18C Grade 2,Table 18 Groups 1 and 2 combined across teaching assistant and teaching fellow titles,68000,86644,5666.67,7220.33,0.9836682144975336,1.2533668937782985
 Graduate workers,Graduate student researchers,Table 22,T022 Grade 1,Increment 1 to 6,69129,100406,5760.75,8367.17,1,1.4524439815417554
 Postdoctoral scholars,Postdoctoral scholars,Table 23,T023,Level 0 to 5,66737,80034,5561.42,6669.5,0.9653980239841455,1.1577485570455235
