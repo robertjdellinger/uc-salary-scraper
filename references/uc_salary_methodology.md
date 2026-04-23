@@ -2,15 +2,6 @@
 
 This document locks the analytic design for the repository before any further major rewrites. It explains what each source can support, what each pay field means, which comparisons are analytically defensible, and which year-comparability rules govern the repository.
 
-## Design status
-
-As of March 31, 2026, the repository should be treated as being in a design-lock phase rather than a "just make it work" phase. That means:
-
-- source documentation comes before major analysis rewrites;
-- each cohort definition must be explicit and machine-readable;
-- each figure must identify whether it uses person-level realized pay, title-summary estimates, UCOP benchmark scales, or a documented combination of those sources;
-- multi-year analysis must be structured as an annual panel, not as pooled years treated as extra sample size.
-
 ## Source hierarchy
 
 The repository uses the following source hierarchy.
@@ -324,13 +315,3 @@ Every final report and README section should explain:
 - why police-versus-librarian over-time analysis uses title-summary estimates rather than treating pooled employee-years as added sample size;
 - what the outputs can and cannot support in advocacy work.
 
-## Current locked design summary
-
-The repository's locked design is therefore:
-
-- latest-available 2024 cross-sectional comparison for small, tractable person-level UC cohorts;
-- UCOP salary-scale benchmarks used only as official structural references, not realized pay;
-- annual `2011-2024` panel logic for over-time analysis;
-- title-summary estimates for annual police-versus-librarian title-series comparisons when long-run person-level librarian panel scraping is not the chosen auditable design;
-- no pooled nominal multi-year averaging of salaries;
-- explicit cohort crosswalks, exclusion rules, source hierarchy, and caption-level source disclosure throughout the repository.
